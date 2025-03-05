@@ -1,0 +1,7 @@
+*.log
+.DS_Store
+__pycache__/
+vid_feed/
+hdp/
+ldp/
+vid_feed/
