@@ -1,0 +1,8 @@
+./build
+./install
+./log
+!./install/setup.bash
+./ws/build
+./ws/install
+./ws/log
+!./ws/install/setup.bash
