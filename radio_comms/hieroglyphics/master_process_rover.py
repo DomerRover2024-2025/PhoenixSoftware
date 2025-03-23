@@ -188,16 +188,15 @@ def process_messages() -> None:
         if curr_msg.pupose == 3: # indicates video
             global capture_video_eh
             global cap
-            cam_num = struct.unpack(">B", curr_msg.payload)[0]
-            if cam_num == 0:    # indicates STOP VIDEO FEED, returns camera feed to the photo camera
+            cam_num = struct.unpack(">b", curr_msg.payload)[0]
+            if cam_num == -1:    # indicates STOP VIDEO FEED, returns camera feed to the photo camera
                 capture_video_eh = False
                 continue
             capture_video_eh = True
-            if cam_num <= 2:
-                cap = cv2.VideoCapture(CAM_PATH[cam_num - 1])
+            if cam_num <= len(CAM_PATHS):
+                cap = cv2.VideoCapture(CAM_PATH[cam_num])
             else:
-                print(f"Only two cameras - not activating video for camera {cam_num}")
-                continue
+                print(f"Only {len(CAM_PATHS)} camera(s). camera {cam_num} DNE")
                 
         # elif curr_msg.purpose == 3: # indicates START/STOP VIDEO FEED
         #     global capture_video_eh

@@ -112,10 +112,15 @@ def main():
 
             elif request == "vid":
                 try: 
-                    cam_num = int(input("Enter (1-5) for cam 1-5, 0 to stop feed, anything else to return to menu: "))
-                    if not (cam_num <= 5 and cam_num > 0):
-                        print("Returning to menu.")
-                    b_cam = struct.pack(">B", cam_num)
+                    stop_video_request = input("n to stop feed, else start feed? >>")
+                    if stop_video_request == 'n':
+                        cam_num = request_camera()
+                        if cam_num == -1:
+                            print("returning to menu")
+                            continue
+                    else:
+                        cam_num = -1
+                    b_cam = struct.pack(">b", cam_num)
                     msg = Message(new=True, purpose=3, payload=b_cam)
                     ser.write(msg.get_as_bytes())
                 except TypeError:
@@ -134,6 +139,15 @@ def main():
 #####################
 ##### FUNCTIONS #####
 #####################
+
+def request_camera():
+    try:
+        cam_num = int(input("Pick camera: (0-4) for cams 0-4"))
+        if cam_num < 0 or cam_num > 4:
+           return -1
+        return cam_num
+    except:
+        return -1
 
 ##### READ FROM THE SERIAL PORT for incoming messages
 def read_from_port(ser: serial.Serial):

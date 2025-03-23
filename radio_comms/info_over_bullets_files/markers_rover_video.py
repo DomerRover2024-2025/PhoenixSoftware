@@ -11,8 +11,8 @@ HOST = "0.0.0.0"
 PORT = 12345
 QUALITY = 80
 TIME_BETWEEN_FRAMES = 0.05
-CAM_PATH = "/dev/v4l/by-id/usb-Technologies__Inc._ZED_2i_OV0001-video-index0"
-NUM_CAMS = len(CAM_PATHS)
+CAM_PATH = ["/dev/v4l/by-id/usb-Technologies__Inc._ZED_2i_OV0001-video-index0"]
+NUM_CAMS = len(CAM_PATH)
 
 # MARKER DETECTION CODE
 
@@ -69,64 +69,82 @@ def aruco_display(corners, ids, rejected, image):
 
             print("[INFO] ArUCo marker ID:'{}".format(markerID))
 
-
-
     return image
 
-# select the ArUCo tag type and ID
-aruco_selection = "DICT_4X4_50"
-arucoDict = cv2.aruco.getPredefinedDictionary(ARUCO_DICT[aruco_selection])
-arucoParams = cv2.aruco.DetectorParameters()
 
+def video_feed(cameraID):
+    # creates video capture object
+    cap = cv2.VideoCapture(CAM_PATH[cameraID])
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+    
+    # select the ArUCo tag type and ID
+    aruco_selection = "DICT_4X4_50"
+    arucoDict = cv2.aruco.getPredefinedDictionary(ARUCO_DICT[aruco_selection])
+    arucoParams = cv2.aruco.DetectorParameters()
+    
+    while cap.isOpened():
+        # capture frame; if successful encode it and publish it with quality QUALITY
+        ret, frame = cap.read()
 
-# create publish socket and video capture object
-context = zmq.Context()
-socket = context.socket(zmq.PUB)
-cap = cv2.VideoCapture(CAM_PATH)
-cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+        if ret:
 
+            # resizing image
+            h, w, _ = frame.shape
+            width = 1000
+            height = int(width*(h/w))
+            frame = cv2.resize(frame, (width, height), interpolation=cv2.INTER_CUBIC)
 
-# bind the host and port
-socket.bind(f"tcp://{HOST}:{PORT}")
+            # marker detection
+            detected_markers = frame.copy()
+            aruco_detector = cv2.aruco.ArucoDetector(arucoDict, arucoParams)
+            corners, ids, rejected = aruco_detector.detectMarkers(frame)
 
-while cap.isOpened():
-    # capture frame; if successful encode it and publish it with quality QUALITY
-    ret, frame = cap.read()
+            if len(detected_markers) > 0:
+                detected_markers = aruco_display(corners, ids, rejected, frame)
 
-    if ret:
+            cv2.imshow("Image", detected_markers)
 
-        # resizing image
-        h, w, _ = img.shape
-        width = 1000
-        height = int(width*(h/w))
-        img = cv2.resize(img, (width, height), interpolation=cv2.INTER_CUBIC)
+            key = cv2.waitKey(1) & 0xFF
+            if key == ord("q"):
+                exit(1)
+            
+            #return cap, detected_markers
 
-        # marker detection
-        detected_markers = img.copy()
-        aruco_detector = cv2.aruco.ArucoDetector(arucoDict, arucoParams)
-        corners, ids, rejected = aruco_detector.detectMarkers(img)
+video_feed(0)
 
-        if len(detected_markers) > 0:
-            detected_markers = aruco_display(corners, ids, rejected, img)
+#creates video capture object
+#cap = cv2.VideoCapture(CAM_PATH[0])
+#cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+#cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
 
-        #cv2.imshow("Image", detected_markers)
+"""
+if __name__ == "__main__":
+    # create publish socket
+    context = zmq.Context()
+    socket = context.socket(zmq.PUB)
 
-        encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), QUALITY]
-        encoded, buffer = cv2.imencode('.jpg', detected_markers, encode_param)
+    # bind the host and port
+    socket.bind(f"tcp://{HOST}:{PORT}")
+    
+    if len(sys.argv) == 1:
+        cameraID = 0
+    else:
+        cameraID = sys.argv[1]
 
-        try:
-            socket.send("0/".encode() + buffer.tobytes())
-        except Exception as e:
-            print(e)
-        #socket.send(b'adsfasdfasdf')
-        time.sleep(TIME_BETWEEN_FRAMES)
+    cap, frame = video_feed(cameraID)
 
-        key = cv2.waitKey(1) & 0xFF
-        if key == ord("q"):
-            break
+    encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), QUALITY]
+    encoded, buffer = cv2.imencode('.jpg', frame, encode_param)
 
+    try:
+        socket.send("0/".encode() + buffer.tobytes())
+    except Exception as e:
+        print(e)
+    #socket.send(b'adsfasdfasdf')
+    time.sleep(TIME_BETWEEN_FRAMES)
 
-cap.release()
-cv2.destroyAllWindows()
-socket.close()
+    cap.release()
+    cv2.destroyAllWindows()
+    socket.close()
+"""

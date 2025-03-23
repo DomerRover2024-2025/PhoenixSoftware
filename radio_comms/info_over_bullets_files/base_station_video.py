@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import zmq
 import cv2
 import numpy as np

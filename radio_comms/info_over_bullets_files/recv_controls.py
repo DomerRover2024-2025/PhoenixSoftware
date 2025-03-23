@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import zmq
 import struct
 import serial
