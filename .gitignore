@@ -6,3 +6,5 @@ ws/build
 ws/install
 ws/log
 !ws/install/setup.bash
+.env/
+.venv/
