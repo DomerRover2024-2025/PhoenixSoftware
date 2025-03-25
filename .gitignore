@@ -9,3 +9,4 @@ ws/log
 .DS_Store
 .env/
 .venv/
+__pycache__/
