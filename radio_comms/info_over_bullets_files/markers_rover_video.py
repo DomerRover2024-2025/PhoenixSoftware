@@ -72,53 +72,40 @@ def aruco_display(corners, ids, rejected, image):
     return image
 
 
-def video_feed(cameraID):
-    # creates video capture object
-    cap = cv2.VideoCapture(CAM_PATH[cameraID])
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+def video_feed():
     
     # select the ArUCo tag type and ID
     aruco_selection = "DICT_4X4_50"
     arucoDict = cv2.aruco.getPredefinedDictionary(ARUCO_DICT[aruco_selection])
     arucoParams = cv2.aruco.DetectorParameters()
     
-    while cap.isOpened():
-        # capture frame; if successful encode it and publish it with quality QUALITY
-        ret, frame = cap.read()
+    # capture frame; if successful encode it and publish it with quality QUALITY
+    ret, frame = cap.read()
 
-        if ret:
+    if ret:
 
-            # resizing image
-            h, w, _ = frame.shape
-            width = 1000
-            height = int(width*(h/w))
-            frame = cv2.resize(frame, (width, height), interpolation=cv2.INTER_CUBIC)
+        # resizing image
+        h, w, _ = frame.shape
+        width = 1000
+        height = int(width*(h/w))
+        frame = cv2.resize(frame, (width, height), interpolation=cv2.INTER_CUBIC)
 
-            # marker detection
-            detected_markers = frame.copy()
-            aruco_detector = cv2.aruco.ArucoDetector(arucoDict, arucoParams)
-            corners, ids, rejected = aruco_detector.detectMarkers(frame)
+        # marker detection
+        detected_markers = frame.copy()
+        aruco_detector = cv2.aruco.ArucoDetector(arucoDict, arucoParams)
+        corners, ids, rejected = aruco_detector.detectMarkers(frame)
 
-            if len(detected_markers) > 0:
-                detected_markers = aruco_display(corners, ids, rejected, frame)
+        if len(detected_markers) > 0:
+            detected_markers = aruco_display(corners, ids, rejected, frame)
 
-            cv2.imshow("Image", detected_markers)
+        #cv2.imshow("Image", detected_markers)
 
-            key = cv2.waitKey(1) & 0xFF
-            if key == ord("q"):
-                exit(1)
-            
-            #return cap, detected_markers
+        key = cv2.waitKey(1) & 0xFF
+        if key == ord("q"):
+            exit(1)
+        
+        return detected_markers
 
-video_feed(0)
-
-#creates video capture object
-#cap = cv2.VideoCapture(CAM_PATH[0])
-#cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-#cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
-
-"""
 if __name__ == "__main__":
     # create publish socket
     context = zmq.Context()
@@ -131,8 +118,13 @@ if __name__ == "__main__":
         cameraID = 0
     else:
         cameraID = sys.argv[1]
+    
+    #creates video capture object
+    cap = cv2.VideoCapture(CAM_PATH[0])
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
 
-    cap, frame = video_feed(cameraID)
+    frame = video_feed(cameraID)
 
     encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), QUALITY]
     encoded, buffer = cv2.imencode('.jpg', frame, encode_param)
@@ -147,4 +139,3 @@ if __name__ == "__main__":
     cap.release()
     cv2.destroyAllWindows()
     socket.close()
-"""
