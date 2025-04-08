@@ -30,14 +30,14 @@ kill_threads = False
 # !TODO to be replaced by a message manager
 messages_to_process = deque()
 scheduler = Scheduler(ser=None, topics=None)
-cap = cv2.VideoCapture(CAM_PATH)
+cap = cv2.VideoCapture(0)
 capture_video_eh = False
 
 def main():
-    #port = "/dev/cu.usbserial-BG00HO5R"
+    port = "/dev/cu.usbserial-BG00HO5R"
     #port = "/dev/tty.usbserial-B001VC58"
     #port = "COM4"
-    port = "/dev/ttyTHS1"
+    #port = "/dev/ttyTHS1"
     baud = 57600
     timeout = 0.1
     ser = serial.Serial(port=port, baudrate=baud, timeout=timeout)
@@ -169,6 +169,7 @@ def process_messages() -> None:
             continue
         print("Processing message", len(messages_to_process))
         curr_msg : Message = messages_to_process.popleft()
+        print(curr_msg, curr_msg.purpose, type(curr_msg.purpose))
         Message.log_message(curr_msg, MSG_LOG)
         if curr_msg.purpose == 1: # indicates DRIVING
             #print("driving message")
@@ -183,6 +184,8 @@ def process_messages() -> None:
             button_y = struct.unpack(">B", payload[11:12])[0]
             # TODO TODO TODO TODO FIX THIS WHEN CONNECTED TO THE JETSON
             #arduino.write(f"{lspeed} {rspeed}\n".encode())
+        else:
+            print('adsfafd')
 
         #!TODO ACTUALLY PICK CAMERA TO SEE
         if curr_msg.pupose == 3: # indicates video
@@ -236,11 +239,14 @@ def process_messages() -> None:
 
             #arduino_ser.write(msg.encode())
         elif curr_msg.purpose == 0: # indicates DEBUGGING to the rover
-            #print("debugging message")
+            print("debugging message")
             payload = curr_msg.get_payload()
             print(payload.decode())
             return_str = f"string {payload.decode()} received."
             scheduler.add_single_message("status", Message(purpose=0, payload=return_str.encode()))
+        
+        else:
+            print("didn't match to anything")
 
 # weighted round robin algorithm?
 # implement with a thread, I think
