@@ -82,8 +82,13 @@ def main():
                 capture_controls.pygame.init()
                 capture_controls.pygame.joystick.init()
                 # get joystick
-                gen = capture_controls.run({}, 1, False)
+                try: 
+                    gen = capture_controls.run({}, 1, False)
+                except:
+                    print("No joystick found")
+                    continue
 
+                # get joystick values
                 while True:
                     lspeed, rspeed, scalar, camleft, camright, button_x, button_y = next(gen) # get joystick values
                     b_lspeed = struct.pack(">h", int(lspeed))

@@ -6,3 +6,7 @@ ws/build
 ws/install
 ws/log
 !ws/install/setup.bash
+.DS_Store
+.env/
+.venv/
+__pycache__/
