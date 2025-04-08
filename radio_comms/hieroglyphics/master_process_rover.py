@@ -184,11 +184,9 @@ def process_messages() -> None:
             button_y = struct.unpack(">B", payload[11:12])[0]
             # TODO TODO TODO TODO FIX THIS WHEN CONNECTED TO THE JETSON
             #arduino.write(f"{lspeed} {rspeed}\n".encode())
-        else:
-            print('adsfafd')
 
         #!TODO ACTUALLY PICK CAMERA TO SEE
-        if curr_msg.pupose == 3: # indicates video
+        elif curr_msg.pupose == 3: # indicates video
             global capture_video_eh
             global cap
             cam_num = struct.unpack(">b", curr_msg.payload)[0]
