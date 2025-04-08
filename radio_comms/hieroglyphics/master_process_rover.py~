@@ -217,14 +217,12 @@ def process_messages() -> None:
                 print("Message added of length ", len(buffer.tobytes()))
         
         elif curr_msg.purpose == 6: # indicates TAKE ME A BAD PHOTO
-            print("getting an ldp photo")
             try:
                 length, buffer = capture_image(90, resize_width=VID_WIDTH)
             except Exception as e:
                 print(e)
             if buffer is None:
                 error_str = "Error: could not capture a high definition photo."
-                print(error_str)
                 scheduler.add_single_message("status", Message(purpose=0, payload=error_str.encode()))
             else:
                 try:
