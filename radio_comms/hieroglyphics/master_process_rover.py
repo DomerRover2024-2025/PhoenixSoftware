@@ -186,7 +186,7 @@ def process_messages() -> None:
             #arduino.write(f"{lspeed} {rspeed}\n".encode())
 
         #!TODO ACTUALLY PICK CAMERA TO SEE
-        elif curr_msg.pupose == 3: # indicates video
+        elif curr_msg.purpose == 3: # indicates video
             global capture_video_eh
             global cap
             cam_num = struct.unpack(">b", curr_msg.payload)[0]
