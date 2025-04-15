@@ -201,24 +201,21 @@ def read_from_port(ser: serial.Serial):
 def process_messages() -> None:
     print("thread activated :)")
 
-    vid_feed_str = b''
-    vid_feed_num = 0
-    vid_feed_dict = {}
-
-    hdp_str = b''
-    hdp_num = 0
-    hdp_dict = {}
-
     ldp_str = b''
+    hdp_str = b''
+    vid_feed_str = b''
+
     ldp_num = 0
-    ldp_dict = {}
+    hdp_num = 0
+    vid_feed_num = 0
 
     # Continuously check for messages, process them according to their purpose.
     while not kill_threads:
-
         if len(messages_from_rover) == 0:
             continue
+
         curr_msg : Message = messages_from_rover.popleft()
+        
         if curr_msg.purpose == 0: # indicates ERROR
             error_msg = curr_msg.get_payload().decode()
             print(error_msg)
@@ -227,50 +224,6 @@ def process_messages() -> None:
 
         elif curr_msg.purpose == 2: # indicates "HEARTBEAT / position"
             pass
-
-        # if curr_msg.purpose == 3: # indicates 'VIDEO FEED'
-        #     # curr_msg.number: number of 'packets' needed to reconstruct the image
-        #     if curr_msg.number != 0:
-        #         video_feed_dict[curr_msg.number] = curr_msg.get_payload()
-
-        #     else:
-        #         for i in range(1, len(video_feed_dict) + 1):
-        #             if i not in video_feed_dict:
-        #                 video_feed_dict = {}
-        #                 video_feed_str = b''
-        #                 print("some error occurred in getting the video feed")
-        #             video_feed_str += video_feed_dict[i]
-
-        #         video_feed_str += curr_msg.get_payload()
-        #         try:
-        #             save_and_output_image(video_feed_str, "vid_feed")
-        #         except Exception as e:
-        #             print(e)
-
-        #         video_feed_dict = {}
-        #         video_feed_str = b''
-
-        # if curr_msg.purpose == 4: # indicates 'VIDEO FEED'
-        #     # curr_msg.number: number of 'packets' needed to reconstruct the image
-        #     if curr_msg.number != 0:
-        #         hdp_dict[curr_msg.number] = curr_msg.get_payload()
-
-        #     else:
-        #         for i in range(1, len(hdp_dict) + 1):
-        #             if i not in video_feed_dict:
-        #                 hdp_dict = {}
-        #                 hdp_str = b''
-        #                 print("some error occurred in getting the high definition photo")
-        #             hdp_str += hdp_dict[i]
-                    
-        #         hdp_str += curr_msg.get_payload()
-        #         try:
-        #             save_and_output_image(video_feed_str, "vid_feed")
-        #         except Exception as e:
-        #             print(e)
-
-                # video_feed_dict = {}
-                # video_feed_str = b''
         
         elif curr_msg.purpose == 3: # indicates "VIDEO FEED"
             if vid_feed_num < curr_msg.number:
