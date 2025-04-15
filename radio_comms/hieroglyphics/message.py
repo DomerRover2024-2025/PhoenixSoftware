@@ -95,11 +95,11 @@ class Message:
             f.write(f"TIMESTAMP,{datetime.now()}|{msg}\n")
 
     @staticmethod
-    def message_split(big_payload : bytearray, purpose_for_all : int):
+    def message_split(big_payload : bytearray, purpose_for_all : int, index_offset : int = 0):
         MAX_SIZE = 4096
         print(len(big_payload))
 
-        number : int = 1
+        number : int = 1 + index_offset
         message_list = []
         
         while len(big_payload) > MAX_SIZE:

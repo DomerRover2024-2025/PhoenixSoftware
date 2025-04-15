@@ -164,13 +164,15 @@ def process_messages() -> None:
     # TODO: TODO TODO FIX THIS when connected to the jetson
     #arduino = serial.Serial('/dev/ttyACM0')
 
+    current_file = ''
+
     while not kill_threads:
         if len(messages_to_process) == 0:
             continue
         print("Processing message", len(messages_to_process))
         curr_msg : Message = messages_to_process.popleft()
-        print(curr_msg, curr_msg.purpose, type(curr_msg.purpose))
         Message.log_message(curr_msg, MSG_LOG)
+
         if curr_msg.purpose == 1: # indicates DRIVING
             #print("driving message")
             payload = curr_msg.get_payload()
@@ -229,11 +231,24 @@ def process_messages() -> None:
                 scheduler.add_single_message("status", Message(purpose=0, payload=error_str.encode()))
             else:
                 try:
-                    msgs =  Message.message_split(big_payload=buffer.tobytes(), purpose_for_all=6)
+                    msgs = Message.message_split(big_payload=buffer.tobytes(), purpose_for_all=6)
                     scheduler.add_list_of_messages("ldp", msgs)
                     print("Message added of length ", len(buffer.tobytes()))
                 except Exception as e:
                     print(e)
+
+        elif curr_msg.purpose == 10: # indicates FILE NAME
+            if curr_msg.number == 1:
+                current_file = curr_msg.get_payload().decode()
+            elif curr_msg.number == 0:
+                current_file = ''
+            elif not current_file:
+                error_str = "Error: file contents received, but no file name for said contents."
+                print(error_str)
+                scheduler.add_single_message("status", Message(purpose=0, payload=error_str.encode()))
+            else:
+                with open(current_file, 'ab') as f:
+                    f.write(curr_msg.get_payload())
 
             #arduino_ser.write(msg.encode())
         elif curr_msg.purpose == 0: # indicates DEBUGGING to the rover

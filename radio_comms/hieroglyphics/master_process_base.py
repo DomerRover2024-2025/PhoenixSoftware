@@ -138,7 +138,24 @@ def main():
             elif request == "ldp":
                 msg = Message(new=True, purpose=6, payload=bytes(1))
                 ser.write(msg.get_as_bytes())
-    except KeyboardInterrupt or Exception:
+
+            elif request == 'f':
+                path = input('Enter path to file: ')
+                if not os.path.exists(path):
+                    print(f"Error: file {path} does not exist. Returning to menu.")
+                    continue
+                with open(path, 'rb') as f:
+                    contents = f.read()
+                msg_title = Message(new=True, purpose=7, number=1, payload=os.path.basename(path).encode())
+                ser.write(msg_title.get_as_bytes())
+                msgs : list[Message] = Message.message_split(purpose_for_all=7, big_payload=contents, index_offset=1)
+                for msg in msgs:
+                    ser.write(msg.get_as_bytes())
+                
+    except KeyboardInterrupt:
+        exit(0)
+    except Exception as e:
+        print(f"Error: exception. {e}")
         exit(0)
 
 #####################
@@ -215,7 +232,7 @@ def process_messages() -> None:
             continue
 
         curr_msg : Message = messages_from_rover.popleft()
-        
+
         if curr_msg.purpose == 0: # indicates ERROR
             error_msg = curr_msg.get_payload().decode()
             print(error_msg)
@@ -315,6 +332,7 @@ def print_options() -> None:
 
     print("(wrd) for sending word to arm to type out")
     print("(hbt) Heartbeat mode: Receive coordinates")
+    print("(f) Copy file as bytes")
     print("(test) Send over tester strings for debugging purposes")
     print("(literally anything else) See menu options again")
 
