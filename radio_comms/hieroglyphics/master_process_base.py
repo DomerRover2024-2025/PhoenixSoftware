@@ -41,8 +41,8 @@ kill_threads = False
 def main():
     port = "/dev/cu.usbserial-BG00HO5R"
     #port = "/dev/cu.usbserial-B001VC58"
-    #port = "COM3"
-    port = "/dev/ttyUSB0"
+    port = "COM4"
+    #port = "/dev/ttyUSB0"
     baud = 57600
     timeout = 0.1
     ser = serial.Serial(port=port, baudrate=baud, timeout=timeout)
@@ -146,10 +146,12 @@ def main():
                     continue
                 with open(path, 'rb') as f:
                     contents = f.read()
-                msg_title = Message(new=True, purpose=7, number=1, payload=os.path.basename(path).encode())
+                print(contents)
+                msg_title = Message(new=True, purpose=10, number=1, payload=os.path.basename(path).encode())
                 ser.write(msg_title.get_as_bytes())
-                msgs : list[Message] = Message.message_split(purpose_for_all=7, big_payload=contents, index_offset=1)
+                msgs : list[Message] = Message.message_split(purpose_for_all=10, big_payload=contents, index_offset=1)
                 for msg in msgs:
+                    print(msg)
                     ser.write(msg.get_as_bytes())
                 
     except KeyboardInterrupt:
