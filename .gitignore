@@ -11,3 +11,4 @@ ws/log
 .venv/
 __pycache__/
 .log
+.swp
