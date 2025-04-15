@@ -5,4 +5,4 @@ vid_feed/
 hdp/
 ldp/
 vid_feed/
-../.venv
+*.txt
