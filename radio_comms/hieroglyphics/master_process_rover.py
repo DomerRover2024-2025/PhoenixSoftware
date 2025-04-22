@@ -73,13 +73,13 @@ def main():
             b_input = ser.read(1)
             if len(b_input) != 0:
                 pot_msg = Message(new=False)
-                b_input += ser.read(1)
+                b_input += read_num_bytes(ser, 1)
                 pot_msg.set_msg_id(struct.unpack(">H", b_input)[0])
-                b_input = ser.read(1)
-                pot_msg.set_purpose(b_input)
-                b_input = ser.read(1)
+                b_input = read_num_bytes(ser, 1)
+                pot_msg.set_purpose(struct.unpack(">B", b_input)[0])
+                b_input = read_num_bytes(ser, 1)
                 pot_msg.number = struct.unpack(">B", b_input)[0]
-                b_input = ser.read(struct.calcsize(">L"))
+                b_input = read_num_bytes(ser, 4)
                 pot_msg.set_size(b_input)
                 payload = b''
 
@@ -274,6 +274,7 @@ def process_messages() -> None:
                 continue
             with open(path, 'rb') as f:
                 contents = f.read()
+            print(f'copied contents of {path}')
             msg_title = Message(new=True, purpose=10, number=1, payload=os.path.basename(path).encode())
             scheduler.add_single_message("file", msg_title)
             scheduler.add_list_of_messages("file", Message.message_split(purpose_for_all=10, big_payload=contents, index_offset=1))
@@ -333,6 +334,16 @@ def exit_handler(executor : concurrent.futures.ThreadPoolExecutor):
     global kill_threads
     kill_threads = True
     executor.shutdown()
+
+def read_num_bytes(ser: serial.Serial, numbytes : int):
+    read_bytes = b''
+    while len(read_bytes) < numbytes:
+        if kill_threads:
+            return
+        read_bytes += ser.read(numbytes - len(read_bytes))
+
+    return read_bytes
+
 
 
 if __name__ == "__main__":
