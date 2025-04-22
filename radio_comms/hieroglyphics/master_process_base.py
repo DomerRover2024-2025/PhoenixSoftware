@@ -146,13 +146,17 @@ def main():
                     continue
                 with open(path, 'rb') as f:
                     contents = f.read()
-                print(contents)
+                # print(contents)
                 msg_title = Message(new=True, purpose=10, number=1, payload=os.path.basename(path).encode())
                 ser.write(msg_title.get_as_bytes())
                 msgs : list[Message] = Message.message_split(purpose_for_all=10, big_payload=contents, index_offset=1)
                 for msg in msgs:
                     print(msg)
                     ser.write(msg.get_as_bytes())
+            
+            elif request == 'cp':
+                path = input('Enter path to file ON ROVER: ')
+                ser.write(Message(new=True, purpose=11, payload=path.encode()))
                 
     except KeyboardInterrupt:
         exit(0)
@@ -352,7 +356,8 @@ def print_options() -> None:
 
     print("(wrd) for sending word to arm to type out")
     print("(hbt) Heartbeat mode: Receive coordinates")
-    print("(f) Copy file as bytes")
+    print("(f) Copy file from base station to rover")
+    print("(cp) Copy file from rover to base station")
     print("(test) Send over tester strings for debugging purposes")
     print("(literally anything else) See menu options again")
 
