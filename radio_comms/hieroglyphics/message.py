@@ -121,5 +121,6 @@ class Message:
         return message_list
 
     @staticmethod
-    def test_checksum(bytestring, checksum):
-        return checksum == Message.calculate_checksum(bytestring)
+    def test_checksum(bytestring, checksum) -> tuple[bool, bytes, bytes]:
+        calculated_checksum = Message.calculate_checksum(bytestring)
+        return checksum == calculated_checksum, calculated_checksum

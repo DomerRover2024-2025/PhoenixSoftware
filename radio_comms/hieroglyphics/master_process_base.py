@@ -109,7 +109,7 @@ def main():
             # Send test messages
             elif request == "test":
                 while True:
-                    hello = input("enter tester phrase, exit to exit: ")
+                    hello = input("enter tester phrase, exit to exit >> ")
                     if hello == "exit":
                         break
                     msg = Message(purpose=0, payload=hello.encode())
@@ -117,7 +117,7 @@ def main():
 
             elif request == "vid":
                 try: 
-                    stop_video_request = input("n to stop feed, else start feed? >>")
+                    stop_video_request = input("n to stop feed, else start feed? >> ")
                     if stop_video_request == 'n':
                         cam_num = request_camera()
                         if cam_num == -1:
@@ -128,7 +128,8 @@ def main():
                     b_cam = struct.pack(">b", cam_num)
                     msg = Message(new=True, purpose=3, payload=b_cam)
                     ser.write(msg.get_as_bytes())
-                except TypeError:
+                except TypeError as e:
+                    print(f"--Error: {e}")
                     print("Returning to menu.")
             
             elif request == "hdp":
@@ -140,7 +141,8 @@ def main():
                 ser.write(msg.get_as_bytes())
 
             elif request == 'f':
-                path = input('Enter path to file: ')
+                print('Enter path to file:')
+                path = input('>> ')
                 if not os.path.exists(path):
                     print(f"Error: file {path} does not exist. Returning to menu.")
                     continue
@@ -155,7 +157,8 @@ def main():
                     ser.write(msg.get_as_bytes())
             
             elif request == 'cp':
-                path = input('Enter path to file ON ROVER: ')
+                print('Enter path to file ON ROVER:')
+                path = input(">> ")
                 ser.write(Message(new=True, purpose=11, payload=path.encode()).get_as_bytes())
                 
     except KeyboardInterrupt:
@@ -212,11 +215,12 @@ def read_from_port(ser: serial.Serial):
             #print("Got checksum")
 
             #print(checksum)
-            if not Message.test_checksum(bytestring=pot_msg.get_as_bytes()[:-1], checksum=checksum):
-                print("Checksum error")
-                continue
-            messages_from_rover.append(pot_msg)
-            print(f"Message added {pot_msg}; len = {len(messages_from_rover)}")
+            the_same, calculated_checksum = Message.test_checksum(bytestring=pot_msg.get_as_bytes()[:-1], checksum=checksum)
+            if not the_same:    
+                print(f"--Error: checksum. Received checksum: {checksum} | calculated checksum: {calculated_checksum}")
+            else:
+                messages_from_rover.append(pot_msg)
+                print(f"Message added {pot_msg}; len = {len(messages_from_rover)}")
         except Exception as e:
             print(e)
 
@@ -297,8 +301,8 @@ def process_messages() -> None:
                 print(f"file {current_file} received.")
                 current_file = ''
             elif not current_file:
-                error_str = "Error: file contents received, but no file name for said contents."
-                print(error_str, file=sys.stdin)
+                error_str = "--Error: file contents received, but no file name for said contents."
+                print(error_str, file=sys.stderr)
             else:
                 print(f'writing to {current_file}.')
                 with open(f'./{current_file}', 'ab') as f:

@@ -90,13 +90,13 @@ def main():
 
                 pot_msg.set_payload(payload)
                 checksum = ser.read(1)
-                if not Message.test_checksum(bytestring=pot_msg.get_as_bytes()[:-1], checksum=checksum):
-                    print("Checksum error")
-                    continue
-
-                # TODO replace with a message manager
-                messages_to_process.append(pot_msg)
-                print(f"Message added")
+                the_same, calculated_checksum = Message.test_checksum(bytestring=pot_msg.get_as_bytes()[:-1], checksum=checksum)
+                if not the_same:    
+                    print(f"--Error: checksum. Received checksum: {checksum} | calculated checksum: {calculated_checksum}")
+                else:
+                    # TODO replace with a message manager
+                    messages_to_process.append(pot_msg)
+                    print(f"Message added")
 
             if received_info_from_gnss_eh:
                 coord_x = 1.2345
@@ -229,11 +229,13 @@ def process_messages() -> None:
         elif curr_msg.purpose == 6: # indicates TAKE ME A BAD PHOTO
             print("getting an ldp photo")
             try:
-                length, buffer = capture_image(90, resize_width=VID_WIDTH)
+                _, buffer = capture_image(90, resize_width=VID_WIDTH)
             except Exception as e:
-                print(e)
+                error_str = f'--Error: could not capture hdp. {e}'
+                print(error_str)
+                scheduler.add_single_message("status", Message(purpose=0, payload=error_str.encode()))
             if buffer is None:
-                error_str = "Error: could not capture a high definition photo."
+                error_str = "Error: could not capture hdp."
                 print(error_str)
                 scheduler.add_single_message("status", Message(purpose=0, payload=error_str.encode()))
             else:
@@ -247,14 +249,14 @@ def process_messages() -> None:
         elif curr_msg.purpose == 10: # indicates FILE NAME
             if curr_msg.number == 1:
                 current_file = curr_msg.get_payload().decode()
-                print(f'copying file {current_file}...')
+                # print(f'copying file {current_file}...')
             elif curr_msg.number == 0:
                 with open(f'./{current_file}', 'ab') as f:
                     f.write(curr_msg.get_payload())
                 print(f"file {current_file} received.")
                 current_file = ''
             elif not current_file:
-                error_str = "Error: file contents received, but no file name for said contents."
+                error_str = "--Error: file contents received, but no file name for said contents."
                 print(error_str)
                 scheduler.add_single_message("status", Message(purpose=0, payload=error_str.encode()))
             else:
@@ -265,7 +267,7 @@ def process_messages() -> None:
         elif curr_msg.purpose == 11: # indicates request for a file
             path = curr_msg.get_payload().decode()
             if not os.path.exists(path):
-                error_str = f"Error: file/path {path} does not exist."
+                error_str = f"--Error: file/path {path} does not exist."
                 print(error_str)
                 scheduler.add_single_message("status", Message(purpose=0, payload=error_str.encode()))
                 continue
@@ -278,7 +280,7 @@ def process_messages() -> None:
         #arduino_ser.write(msg.encode())
         
         else:
-            print("Error: message matched no known purposes.")
+            print("--Error: message matched no known purposes.")
 
 # weighted round robin algorithm?
 # implement with a thread, I think
@@ -297,7 +299,7 @@ def send_messages_via_scheduler():
                     #print(f"{curr_msg.get_as_bytes()[4:8]}")
                     #print(f"Message sent: {curr_msg} of length {curr_msg.size_of_payload}")
                 except Exception as e:
-                    print(e)
+                    print(f'--Error: in the scheduler loop: {e}')
     # talkerNode.destroy_node()
     # rclpy.shutdown()
     # arduino.close()
