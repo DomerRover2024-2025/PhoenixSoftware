@@ -156,12 +156,12 @@ def main():
             
             elif request == 'cp':
                 path = input('Enter path to file ON ROVER: ')
-                ser.write(Message(new=True, purpose=11, payload=path.encode()))
+                ser.write(Message(new=True, purpose=11, payload=path.encode()).get_as_bytes())
                 
     except KeyboardInterrupt:
         exit(0)
     except Exception as e:
-        print(f"Error: exception. {e}")
+        print(f"--Error (main loop): exception. {e}")
         exit(0)
 
 #####################
