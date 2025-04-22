@@ -208,7 +208,7 @@ def read_from_port(ser: serial.Serial):
             print("Got size", pot_msg.size_of_payload)
 
             if pot_msg.size_of_payload > 4096:
-                print(f"--Error: buffer? ID: {pot_msg.msg_id}, purpose: {pot_msg.purpose}, num: {pot_msg.number}, len_payload: {len(pot_msg.size_of_payload)}")
+                print(f"--Error: buffer? ID: {pot_msg.msg_id}, purpose: {pot_msg.purpose}, num: {pot_msg.number}, len_payload: {pot_msg.size_of_payload}")
 
             # print(pot_msg.size_of_payload)
             payload = read_num_bytes(ser, pot_msg.size_of_payload)
