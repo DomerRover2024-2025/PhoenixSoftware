@@ -81,15 +81,10 @@ def main():
                 pot_msg.number = struct.unpack(">B", b_input)[0]
                 b_input = read_num_bytes(ser, 4)
                 pot_msg.set_size(b_input)
-                payload = b''
 
-                while len(payload) < pot_msg.size_of_payload:
-                    payload += ser.read(pot_msg.size_of_payload - len(payload))
-                    if kill_threads:
-                        return
-
+                payload = read_num_bytes(ser, pot_msg.size_of_payload)
                 pot_msg.set_payload(payload)
-                checksum = ser.read(1)
+                checksum = read_num_bytes(ser, 1)
                 the_same, calculated_checksum = Message.test_checksum(bytestring=pot_msg.get_as_bytes()[:-1], checksum=checksum)
                 if not the_same:    
                     print(f"--Error: checksum. Received checksum: {checksum} | calculated checksum: {calculated_checksum}")
