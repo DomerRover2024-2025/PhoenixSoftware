@@ -234,6 +234,7 @@ def process_messages() -> None:
                 error_str = f'--Error: could not capture hdp. {e}'
                 print(error_str)
                 scheduler.add_single_message("status", Message(purpose=0, payload=error_str.encode()))
+
             if buffer is None:
                 error_str = "Error: could not capture hdp."
                 print(error_str)
