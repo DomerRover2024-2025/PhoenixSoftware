@@ -11,7 +11,7 @@
 ###################
 
 import serial
-import re
+import sys
 import numpy as np
 import cv2
 import time
@@ -282,6 +282,24 @@ def process_messages() -> None:
                 except Exception as e:
                     print(e)
                 ldp_str = b''
+        
+        elif curr_msg.purpose == 10: # indicates receiving a photo
+            if curr_msg.number == 1:
+                current_file = curr_msg.get_payload().decode()
+                print(f'copying file {current_file}...')
+            elif curr_msg.number == 0:
+                with open(f'./{current_file}', 'ab') as f:
+                    f.write(curr_msg.get_payload())
+                print(f"file {current_file} received.")
+                current_file = ''
+            elif not current_file:
+                error_str = "Error: file contents received, but no file name for said contents."
+                print(error_str, file=sys.stdin)
+            else:
+                print(f'writing to {current_file}.')
+                with open(f'./{current_file}', 'ab') as f:
+                    f.write(curr_msg.get_payload())
+
 
 
 def save_and_output_image(buffer : bytearray, type : str) -> bool:

@@ -7,14 +7,13 @@
 
 import serial
 import cv2
-import sys
+import os
 import struct
 import numpy as np
 import concurrent.futures
 from message import Message
 from scheduler import Scheduler
 from collections import deque
-from datetime import datetime
 import atexit
 import time
 #np.set_printoptions(threshold=sys.maxsize)
@@ -50,7 +49,8 @@ def main():
         "vid_feed": 10,
         "position": 1,
         "hdp": 1,
-        "ldp": 1
+        "ldp": 1,
+        "file": 1
     }
 
     scheduler.ser = ser
@@ -173,7 +173,14 @@ def process_messages() -> None:
         curr_msg : Message = messages_to_process.popleft()
         Message.log_message(curr_msg, MSG_LOG)
 
-        if curr_msg.purpose == 1: # indicates DRIVING
+        if curr_msg.purpose == 0: # indicates DEBUGGING to the rover
+            print("debugging message")
+            payload = curr_msg.get_payload()
+            print(payload.decode())
+            return_str = f"string {payload.decode()} received."
+            scheduler.add_single_message("status", Message(purpose=0, payload=return_str.encode()))
+
+        elif curr_msg.purpose == 1: # indicates DRIVING
             #print("driving message")
             payload = curr_msg.get_payload()
             print(len(payload))
@@ -254,17 +261,24 @@ def process_messages() -> None:
                 print('writing to file.')
                 with open(f'./{current_file}', 'ab') as f:
                     f.write(curr_msg.get_payload())
+        
+        elif curr_msg.purpose == 11: # indicates request for a file
+            path = curr_msg.get_payload().decode()
+            if not os.path.exists(path):
+                error_str = f"Error: file/path {path} does not exist."
+                print(error_str)
+                scheduler.add_single_message("status", Message(purpose=0, payload=error_str.encode()))
+                continue
+            with open(path, 'rb') as f:
+                contents = f.read()
+            msg_title = Message(new=True, purpose=10, number=1, payload=os.path.basename(path).encode())
+            scheduler.add_single_message("file", msg_title)
+            scheduler.add_list_of_messages("file", Message.message_split(purpose_for_all=10, big_payload=contents, index_offset=1))
 
-            #arduino_ser.write(msg.encode())
-        elif curr_msg.purpose == 0: # indicates DEBUGGING to the rover
-            print("debugging message")
-            payload = curr_msg.get_payload()
-            print(payload.decode())
-            return_str = f"string {payload.decode()} received."
-            scheduler.add_single_message("status", Message(purpose=0, payload=return_str.encode()))
+        #arduino_ser.write(msg.encode())
         
         else:
-            print("didn't match to anything")
+            print("Error: message matched no known purposes.")
 
 # weighted round robin algorithm?
 # implement with a thread, I think
