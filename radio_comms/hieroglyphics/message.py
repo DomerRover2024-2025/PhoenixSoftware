@@ -39,10 +39,10 @@ class Message:
         self.checksum = bytestring[-1]
 
     def set_msg_id(self, id):
-        if type(id) is bytes:
-            self.msg_id = struct.unpack(">H", id)[0]
-        else:
-            self.msg_id = id
+        # if type(id) is bytes:
+        #     self.msg_id = struct.unpack(">H", id)[0]
+        # else:
+        self.msg_id = id
     
     def get_payload(self):
         return self.payload
@@ -61,20 +61,20 @@ class Message:
     #     return struct.calcsize(self.purpose)
     
     def set_purpose(self, purpose):
-        if type(purpose) is bytes:
-            self.purpose = struct.unpack(">B", purpose)[0]
-        else:
-            self.purpose = purpose
+        # if type(purpose) is bytes:
+        #     self.purpose = struct.unpack(">B", purpose)[0]
+        # else:
+        self.purpose = purpose
 
     def set_payload(self, payload):
         self.payload = payload
         self.size_of_payload = len(payload)
     
     def set_size(self, size):
-        if type(size) is not bytes:
-            print("potential size isn't bytes! Whatchu trying to do here.", file=sys.stderr)
-            return
-        self.size_of_payload = struct.unpack(">L", size)[0]
+        # if type(size) is not bytes:
+        #     print("potential size isn't bytes! Whatchu trying to do here.", file=sys.stderr)
+        #     return
+        self.size_of_payload = size
 
     def __bool__(self):
         return (self.purpose is not None) and (self.payload is not None)

@@ -188,6 +188,7 @@ def read_from_port(ser: serial.Serial):
             b_id = read_num_bytes(ser, 1)
             # ID, PURPOSE, NUMBER, SIZE, PAYLOAD, CHECKSUM
             if len(b_id) == 0:
+                print('length of bid is 0 somehow?')
                 continue
             #print("Got a message")
             pot_msg = Message(new=False)
@@ -202,9 +203,12 @@ def read_from_port(ser: serial.Serial):
             #print("Got number")
             b_size = read_num_bytes(ser, 4)
             #print(struct.calcsize(">L"))
-            pot_msg.set_size(b_size)
+            pot_msg.set_size(struct.unpack(">L", b_size)[0])
             #print(f"{b_id}{b_purpose}{b_number}{b_size}")
             print("Got size", pot_msg.size_of_payload)
+
+            if pot_msg.size_of_payload > 4096:
+                print(f"--Error: buffer? ID: {pot_msg.msg_id}, purpose: {pot_msg.purpose}, num: {pot_msg.number}, len_payload: {len(pot_msg.size_of_payload)}")
 
             # print(pot_msg.size_of_payload)
             payload = read_num_bytes(ser, pot_msg.size_of_payload)
@@ -213,11 +217,10 @@ def read_from_port(ser: serial.Serial):
             #print("Got payload")
             checksum = read_num_bytes(ser, 1)
             #print("Got checksum")
-
             #print(checksum)
             the_same, calculated_checksum = Message.test_checksum(bytestring=pot_msg.get_as_bytes()[:-1], checksum=checksum)
             if not the_same:    
-                print(f"--Error: checksum. Received checksum: {checksum} | calculated checksum: {calculated_checksum}")
+                print(f"--Error: checksum. Received checksum: {checksum} | calculated checksum: {calculated_checksum}. ID: {pot_msg.msg_id}, purpose: {pot_msg.purpose}, num: {pot_msg.number}, len_payload: {len(payload)}")
             else:
                 messages_from_rover.append(pot_msg)
                 print(f"Message added {pot_msg}; len = {len(messages_from_rover)}")
