@@ -1,0 +1,9 @@
+<library path="simple_arm_phoenix">
+  <class name="simple_arm_phoenix/ArmSystem"
+         type="simple_arm_phoenix::ArmSystem"
+         base_class_type="hardware_interface::SystemInterface">
+    <description>
+      Hardware interface as a plugin.
+    </description>
+  </class>
+</library>

@@ -1,0 +1,18 @@
+{
+    "python.autoComplete.extraPaths": [
+        "/home/noah/ros2_ws/install/motor_package/lib/python3.10/site-packages",
+        "/home/noah/ros2_ws/install/gps_pub_sub/lib/python3.10/site-packages",
+        "/home/noah/ros2_ws/install/custom_msgs/local/lib/python3.10/dist-packages",
+        "/home/noah/ros2_ws/install/arm_control_py/lib/python3.10/site-packages",
+        "/opt/ros/humble/lib/python3.10/site-packages",
+        "/opt/ros/humble/local/lib/python3.10/dist-packages"
+    ],
+    "python.analysis.extraPaths": [
+        "/home/noah/ros2_ws/install/motor_package/lib/python3.10/site-packages",
+        "/home/noah/ros2_ws/install/gps_pub_sub/lib/python3.10/site-packages",
+        "/home/noah/ros2_ws/install/custom_msgs/local/lib/python3.10/dist-packages",
+        "/home/noah/ros2_ws/install/arm_control_py/lib/python3.10/site-packages",
+        "/opt/ros/humble/lib/python3.10/site-packages",
+        "/opt/ros/humble/local/lib/python3.10/dist-packages"
+    ]
+}

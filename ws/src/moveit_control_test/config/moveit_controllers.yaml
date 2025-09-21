@@ -1,0 +1,20 @@
+# MoveIt uses this configuration for controller management
+
+moveit_controller_manager: moveit_simple_controller_manager/MoveItSimpleControllerManager
+
+moveit_simple_controller_manager:
+  controller_names:
+    - All_controller
+
+  All_controller:
+    type: FollowJointTrajectory
+    action_ns: follow_joint_trajectory
+    default: true
+    ros__parameters:
+      joints:
+        - base_swivel_joint
+        - swivel_upper_arm_joint
+        - gearbox_lower_arm_joint
+        - lower_arm_wrist_joint
+        - wrist_wrist_rotation_joint
+        - wrist_rotation_left_finger_joint

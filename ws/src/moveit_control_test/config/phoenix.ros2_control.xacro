@@ -1,0 +1,50 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+    <xacro:macro name="phoenix_ros2_control" params="name initial_positions_file">
+        <xacro:property name="initial_positions" value="${load_yaml(initial_positions_file)['initial_positions']}"/>
+
+        <ros2_control name="${name}" type="system">
+            <hardware>
+                <!-- By default, set up controllers for simulation. This won't work on real hardware -->
+                <plugin>simple_arm_phoenix/ArmSystem</plugin>
+            </hardware>
+            <joint name="base_swivel_joint">
+                <command_interface name="position"/>
+                <state_interface name="position">
+                  <param name="initial_value">${initial_positions['base_swivel_joint']}</param>
+                </state_interface>
+            </joint>
+            <joint name="swivel_upper_arm_joint">
+                <command_interface name="position"/>
+                <state_interface name="position">
+                  <param name="initial_value">${initial_positions['swivel_upper_arm_joint']}</param>
+                </state_interface>
+            </joint>
+            <joint name="gearbox_lower_arm_joint">
+                <command_interface name="position"/>
+                <state_interface name="position">
+                  <param name="initial_value">${initial_positions['gearbox_lower_arm_joint']}</param>
+                </state_interface>
+            </joint>
+            <joint name="lower_arm_wrist_joint">
+                <command_interface name="position"/>
+                <state_interface name="position">
+                  <param name="initial_value">${initial_positions['lower_arm_wrist_joint']}</param>
+                </state_interface>
+            </joint>
+            <joint name="wrist_wrist_rotation_joint">
+                <command_interface name="position"/>
+                <state_interface name="position">
+                  <param name="initial_value">${initial_positions['wrist_wrist_rotation_joint']}</param>
+                </state_interface>
+            </joint>
+            <joint name="wrist_rotation_left_finger_joint">
+                <command_interface name="position"/>
+                <state_interface name="position">
+                  <param name="initial_value">${initial_positions['wrist_rotation_left_finger_joint']}</param>
+                </state_interface>
+            </joint>
+
+        </ros2_control>
+    </xacro:macro>
+</robot>

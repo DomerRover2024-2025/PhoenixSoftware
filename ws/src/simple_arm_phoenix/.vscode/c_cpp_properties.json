@@ -1,0 +1,29 @@
+{
+  "configurations": [
+    {
+      "browse": {
+        "databaseFilename": "${default}",
+        "limitSymbolsToIncludedHeaders": false
+      },
+      "includePath": [
+        "/home/noah/ros2_ws/install/ros2_control_demo_example_7/include/**",
+        "/home/noah/ros2_ws/install/custom_msgs/include/**",
+        "/home/noah/ros2_ws/install/custom_hardware/include/**",
+        "/opt/ros/humble/include/**",
+        "/home/noah/ros2_ws/src/arm_control/include/**",
+        "/home/noah/ros2_ws/src/arm_hardware/include/**",
+        "/home/noah/ros2_ws/src/custom_hardware/include/**",
+        "/home/noah/ros2_ws/src/moveit_planning_pkg/include/**",
+        "/home/noah/ros2_ws/src/phoenix_hardware/include/**",
+        "/usr/include/**",
+        "/opt/ros/humble/include/**"
+      ],
+      "name": "ROS",
+      "intelliSenseMode": "gcc-x64",
+      "compilerPath": "/usr/bin/gcc",
+      "cStandard": "gnu11",
+      "cppStandard": "c++14"
+    }
+  ],
+  "version": 4
+}
