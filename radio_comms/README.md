@@ -1,7 +1,6 @@
 # Radio and Communications
 
 ## Setup
-
 ### Python virtual environment
 
 I recommend setting up a python virtual environment in the directory JUST OUTSIDE of the main repo.
@@ -134,3 +133,19 @@ There are two main directories here:
 
 Code for the 900MHz frequency, intended to be sent over RFD900x-US transceivers.
 
+## Message Purposes
+
+| Purpose | Meaning | Info | Meaning of # | rover to base destination | base to rover destination |
+| ------- | ------- | ---- | ------------ | ------------------ | ------------------ |
+| 00 | error or debug | string of error | N/A | error | error |
+| 01 | controller input | [float (left wheel), float (right wheel), float (speed scalar), bool (camera left), bool (camera right)] | N/A | never | motors |
+| 02 | heartbeat/position data | string with 2 float info (change to just 2 floats) | N/A | two floast | store position of base station |
+| 03 | generic video feed | image buffers | order of buffers for an image | buffers to concatenate | request |
+| 04 | high definition photo | image buffers | order of buffers | buffers to concatenate | request |
+| 05 | word for arm to type out | single string | N/A | never | request for word to type out |
+| 06 | low definition photo | image buffers | order of buffers | buffers to concatenate | request |
+| 07 | --- | --- | --- | --- | --- |
+| 08 | csv file | series of strings | order of rows | buffers to concatenate | request |
+| 09 | camera vision | image buffers | order of buffers | buffers to concatenate | request |
+| 10 | arbitrary file | strings of the file, first is file name | order of buffers | file sent | file sent |
+| 11 | request for file | payload is file name only | N/A | prompts sending a file | request |
