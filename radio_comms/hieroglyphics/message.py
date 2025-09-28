@@ -111,6 +111,7 @@ class Message:
             big_payload = big_payload[MAX_SIZE:]
             number += 1
 
+        # 0 acts as a sentinel value
         message_list.append(Message(purpose=purpose_for_all, payload=big_payload, number=0))
 
         # remaining = size % MAX_SIZE

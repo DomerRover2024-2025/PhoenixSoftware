@@ -5,7 +5,6 @@
 
 # This is the client side of a client-server model.
 # This will be sending requests to the rover.
-
 ###################
 ##### IMPORTS #####
 ###################
@@ -25,6 +24,7 @@ import concurrent.futures
 from datetime import datetime
 import atexit
 
+from messagePurpose import Purpose
 #######################
 ##### GLOBAL VARS #####
 #######################
@@ -41,7 +41,7 @@ kill_threads = False
 def main():
     port = "/dev/cu.usbserial-BG00HO5R"
     #port = "/dev/cu.usbserial-B001VC58"
-    port = "COM4"
+    # port = "COM4"
     #port = "/dev/ttyUSB0"
     baud = 57600
     timeout = 0.1
@@ -246,16 +246,16 @@ def process_messages() -> None:
 
         curr_msg : Message = messages_from_rover.popleft()
 
-        if curr_msg.purpose == 0: # indicates ERROR
+        if curr_msg.purpose == Purpose.ERROR: # indicates ERROR
             error_msg = curr_msg.get_payload().decode()
             print(error_msg)
             with open(ERR_LOG,  'a') as f:
                 f.write(error_msg + '\n')
 
-        elif curr_msg.purpose == 2: # indicates "HEARTBEAT / position"
+        elif curr_msg.purpose == Purpose.HEARTBEAT: # indicates "HEARTBEAT / position"
             pass
         
-        elif curr_msg.purpose == 3: # indicates "VIDEO FEED"
+        elif curr_msg.purpose == Purpose.VIDEO: # indicates "VIDEO FEED"
             if vid_feed_num < curr_msg.number:
                 vid_feed_str += curr_msg.get_payload()
                 vid_feed_num += 1
@@ -268,7 +268,7 @@ def process_messages() -> None:
                     print(e)
                 vid_feed_str = b''
         
-        elif curr_msg.purpose == 4: # indicates "HIGH DEFINITION PHOTO"
+        elif curr_msg.purpose == Purpose.HIGH_DEFINITION_PHOTO: # indicates "HIGH DEFINITION PHOTO"
             if hdp_num < curr_msg.number:
                 hdp_str += curr_msg.get_payload()
                 hdp_num += 1
@@ -281,7 +281,7 @@ def process_messages() -> None:
                     print(e)
                 hdp_str = b''
         
-        elif curr_msg.purpose == 6: # indicates "LOW DEFINITION PHOTO"
+        elif curr_msg.purpose == Purpose.LOW_DEFINITION_PHOTO: # indicates "LOW DEFINITION PHOTO"
             if ldp_num < curr_msg.number:
                 ldp_str += curr_msg.get_payload()
                 ldp_num += 1
@@ -294,7 +294,7 @@ def process_messages() -> None:
                     print(e)
                 ldp_str = b''
         
-        elif curr_msg.purpose == 10: # indicates receiving a photo
+        elif curr_msg.purpose == Purpose.FILE_CONTENTS: # indicates receiving a file
             if curr_msg.number == 1:
                 current_file = curr_msg.get_payload().decode()
                 print(f'copying file {current_file}...')
