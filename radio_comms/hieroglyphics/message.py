@@ -47,7 +47,7 @@ class Message:
     def get_payload(self):
         return self.payload
 
-    def get_as_bytes(self):
+    def get_as_bytes(self) -> bytes:
         # if not self:
         #     return None
         b_id = struct.pack(">H", self.msg_id)
@@ -57,13 +57,7 @@ class Message:
         bytestring = b_id + b_purpose + b_number + b_size + self.payload
         return bytestring + Message.calculate_checksum(bytestring)
     
-    # def get_total_size(self):
-    #     return struct.calcsize(self.purpose)
-    
     def set_purpose(self, purpose):
-        # if type(purpose) is bytes:
-        #     self.purpose = struct.unpack(">B", purpose)[0]
-        # else:
         self.purpose = purpose
 
     def set_payload(self, payload):
@@ -71,9 +65,6 @@ class Message:
         self.size_of_payload = len(payload)
     
     def set_size(self, size):
-        # if type(size) is not bytes:
-        #     print("potential size isn't bytes! Whatchu trying to do here.", file=sys.stderr)
-        #     return
         self.size_of_payload = size
 
     def __bool__(self):

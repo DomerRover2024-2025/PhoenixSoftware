@@ -5,6 +5,7 @@
 
 # This is the client side of a client-server model.
 # This will be sending requests to the rover.
+
 ###################
 ##### IMPORTS #####
 ###################
@@ -15,24 +16,22 @@ import numpy as np
 import cv2
 import time
 import os
-from collections import deque
-from message import Message
 import struct
-import capture_controls
 import subprocess
+from collections import deque
 import concurrent.futures
 from datetime import datetime
 import atexit
 
+import config
+from message import Message
+import capture_controls
 from messagePurpose import Purpose
+from readPort import Reader
+
 #######################
 ##### GLOBAL VARS #####
 #######################
-
-messages_from_rover = deque()
-MSG_LOG = "messages_base.log"
-ERR_LOG = "errors_from_rover.log"
-kill_threads = False
 
 ################
 ##### MAIN #####
@@ -52,11 +51,13 @@ def main():
     # make sure the log file is empty
     open(MSG_LOG, 'w').close()
 
+    reader = Reader()
+
     # 3 concurrent threads: one read from serial port, 
     # one for processing messages, one for writing messages
     executor = concurrent.futures.ThreadPoolExecutor(3)
     future = executor.submit(process_messages)
-    future = executor.submit(read_from_port, ser)
+    future = executor.submit(reader.read_from_port, ser)
     atexit.register(exit_main, executor)
 
     try:
@@ -68,7 +69,6 @@ def main():
             request = input(">> ")
             
             if request == 'quit':
-                exit_main(executor=executor)
                 return 0
 
             # this request is for debugging, and prints the remaining contents
@@ -180,52 +180,6 @@ def request_camera():
     except:
         return -1
 
-##### READ FROM THE SERIAL PORT for incoming messages
-def read_from_port(ser: serial.Serial):
-    while not kill_threads:
-
-        try:
-            b_id = read_num_bytes(ser, 1)
-            # ID, PURPOSE, NUMBER, SIZE, PAYLOAD, CHECKSUM
-            if len(b_id) == 0:
-                print('length of bid is 0 somehow?')
-                continue
-            #print("Got a message")
-            pot_msg = Message(new=False)
-            b_id += read_num_bytes(ser, 1)
-            pot_msg.set_msg_id(struct.unpack(">H", b_id)[0])
-            #print("Got id")
-            b_purpose = read_num_bytes(ser, 1)
-            pot_msg.set_purpose(struct.unpack(">B", b_purpose)[0])
-            #print("Got purpose")
-            b_number = read_num_bytes(ser, 1)
-            pot_msg.number = struct.unpack(">B", b_number)[0]
-            #print("Got number")
-            b_size = read_num_bytes(ser, 4)
-            #print(struct.calcsize(">L"))
-            pot_msg.set_size(struct.unpack(">L", b_size)[0])
-            #print(f"{b_id}{b_purpose}{b_number}{b_size}")
-            print("Got size", pot_msg.size_of_payload)
-
-            if pot_msg.size_of_payload > 4096:
-                print(f"--Error: buffer? ID: {pot_msg.msg_id}, purpose: {pot_msg.purpose}, num: {pot_msg.number}, len_payload: {pot_msg.size_of_payload}")
-
-            # print(pot_msg.size_of_payload)
-            payload = read_num_bytes(ser, pot_msg.size_of_payload)
-            # print(len(payload))
-            pot_msg.set_payload(payload)
-            #print("Got payload")
-            checksum = read_num_bytes(ser, 1)
-            #print("Got checksum")
-            #print(checksum)
-            the_same, calculated_checksum = Message.test_checksum(bytestring=pot_msg.get_as_bytes()[:-1], checksum=checksum)
-            if not the_same:    
-                print(f"--Error: checksum. Received checksum: {checksum} | calculated checksum: {calculated_checksum}. ID: {pot_msg.msg_id}, purpose: {pot_msg.purpose}, num: {pot_msg.number}, len_payload: {len(payload)}")
-            else:
-                messages_from_rover.append(pot_msg)
-                print(f"Message added {pot_msg}; len = {len(messages_from_rover)}")
-        except Exception as e:
-            print(e)
 
 ##### THE BRAINS FOR DECODING IMPORTED MESSAGES FROM ROVER
 def process_messages() -> None:
@@ -312,7 +266,6 @@ def process_messages() -> None:
                     f.write(curr_msg.get_payload())
 
 
-
 def save_and_output_image(buffer : bytearray, type : str) -> bool:
     try:
         #buffer = buffer.frombytes()
@@ -337,14 +290,6 @@ def exit_main(executor : concurrent.futures.ThreadPoolExecutor):
     kill_threads = True
     executor.shutdown(wait=False, cancel_futures=True)
 
-def read_num_bytes(ser: serial.Serial, numbytes : int):
-    read_bytes = b''
-    while len(read_bytes) < numbytes:
-        if kill_threads:
-            return
-        read_bytes += ser.read(numbytes - len(read_bytes))
-
-    return read_bytes
 
 def print_options() -> None:
     print("----------------")
