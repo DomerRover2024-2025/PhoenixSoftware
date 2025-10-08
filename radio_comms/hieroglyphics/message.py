@@ -1,8 +1,12 @@
+# Authors: Henry Jochaniewicz
+# Date last modified: October 8, 2025
+
 from functools import reduce
 import serial
 import struct
 import sys
 from datetime import datetime
+from enum import Enum
 
 ### MESSAGE STRUCTURE:
     # UID: 2 BYTES?
@@ -13,6 +17,19 @@ from datetime import datetime
 class Message:
 
     message_count = 0
+
+    class Purpose(Enum):
+        ERROR=0
+        MOVEMENT=1
+        HEARTBEAT=2
+        VIDEO=3
+        HIGH_DEFINITION_PHOTO=4
+        ARM_WORD=5
+        LOW_DEFINITION_PHOTO=6
+        CSV=8
+        CAMERA_VISION=9
+        FILE_CONTENTS=10
+        REQUEST_FILE=11
 
     # I am necessitating that the payload ALREADY BE a byte object.
     # I do not know how big it is.

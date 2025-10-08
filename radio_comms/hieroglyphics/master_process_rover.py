@@ -5,18 +5,18 @@
 ##### IMPORTS #####
 ###################
 
-import serial
+from serial import Serial
 import cv2
 import os
 import struct
 import numpy as np
 import concurrent.futures
-from message import Message
-from scheduler import Scheduler
-from collections import deque
 import atexit
 import time
-#np.set_printoptions(threshold=sys.maxsize)
+
+from message import Message
+from scheduler import Scheduler
+from messageQueue import MessageQueue
 
 MSG_LOG = "messages_rover.log"
 VID_WIDTH = 200
@@ -25,9 +25,6 @@ CAM_PATHS = [
     "/dev/v4l/by-id/usb-Technologies__Inc._ZED_2i_OV0001-video-index0"
 ]
 CAM_PATH = CAM_PATHS[1]
-kill_threads = False
-# !TODO to be replaced by a message manager
-messages_to_process = deque()
 scheduler = Scheduler(ser=None, topics=None)
 cap = cv2.VideoCapture(0)
 capture_video_eh = False
@@ -55,6 +52,10 @@ def main():
 
     scheduler.ser = ser
     scheduler.set_topics(topics=topics)
+
+    messageQueue : MessageQueue = MessageQueue()
+    reader : Reader = Reader(ser, messageQueue)
+
 
     executor = concurrent.futures.ThreadPoolExecutor(4)
     future_scheduler = executor.submit(send_messages_via_scheduler)

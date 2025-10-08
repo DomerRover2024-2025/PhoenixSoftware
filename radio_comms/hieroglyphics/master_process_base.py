@@ -10,7 +10,7 @@
 ##### IMPORTS #####
 ###################
 
-import serial
+from serial import Serial
 import sys
 import numpy as np
 import cv2
@@ -25,6 +25,7 @@ import atexit
 
 import config
 from message import Message
+from messageQueue import MessageQueue
 import capture_controls
 from messagePurpose import Purpose
 from readPort import Reader
@@ -44,21 +45,22 @@ def main():
     #port = "/dev/ttyUSB0"
     baud = 57600
     timeout = 0.1
-    ser = serial.Serial(port=port, baudrate=baud, timeout=timeout)
+    ser = Serial(port=port, baudrate=baud, timeout=timeout)
     ser.reset_input_buffer()
     ser.reset_output_buffer()
 
     # make sure the log file is empty
-    open(MSG_LOG, 'w').close()
+    open(config.MSG_LOG, 'w').close()
 
-    reader = Reader()
+    reader : Reader = Reader(ser)
+    messageQueue : MessageQueue = MessageQueue()
 
     # 3 concurrent threads: one read from serial port, 
     # one for processing messages, one for writing messages
     executor = concurrent.futures.ThreadPoolExecutor(3)
-    future = executor.submit(process_messages)
-    future = executor.submit(reader.read_from_port, ser)
-    atexit.register(exit_main, executor)
+    future = executor.submit(process_messages, messageQueue)
+    future = executor.submit(reader.read_from_port)
+    atexit.register(exit_main, executor, messageQueue)
 
     try:
             
@@ -74,7 +76,7 @@ def main():
             # this request is for debugging, and prints the remaining contents
             # of the buffer into a file
             if request == 'log':
-                tail_output = subprocess.run(["tail", '-n', 10, MSG_LOG], capture_output=True, text=True)
+                tail_output = subprocess.run(["tail", '-n', 10, config.MSG_LOG], capture_output=True, text=True)
                 print(tail_output.stdout)
 
             elif request == "dr":
@@ -182,7 +184,7 @@ def request_camera():
 
 
 ##### THE BRAINS FOR DECODING IMPORTED MESSAGES FROM ROVER
-def process_messages() -> None:
+def process_messages(messageQueue : MessageQueue) -> None:
     print("thread activated :)")
 
     ldp_str = b''
@@ -193,68 +195,65 @@ def process_messages() -> None:
     hdp_num = 0
     vid_feed_num = 0
 
-    # Continuously check for messages, process them according to their purpose.
-    while not kill_threads:
-        if len(messages_from_rover) == 0:
+    # Continuously check for messages, process them according to their Message.Purpose.
+    while messageQueue.isRunning():
+        if not messageQueue:
             continue
 
-        curr_msg : Message = messages_from_rover.popleft()
+        current_message : Message = messageQueue.pop()
 
-        if curr_msg.purpose == Purpose.ERROR: # indicates ERROR
-            error_msg = curr_msg.get_payload().decode()
+        if current_message.purpose == Message.Purpose.ERROR: 
+            error_message = current_message.get_payload().decode()
             print(error_msg)
-            with open(ERR_LOG,  'a') as f:
+            with open(config.ERR_LOG,  'a') as f:
                 f.write(error_msg + '\n')
 
-        elif curr_msg.purpose == Purpose.HEARTBEAT: # indicates "HEARTBEAT / position"
+        elif current_message.purpose == Message.Purpose.HEARTBEAT: 
             pass
-        
-        elif curr_msg.purpose == Purpose.VIDEO: # indicates "VIDEO FEED"
-            if vid_feed_num < curr_msg.number:
-                vid_feed_str += curr_msg.get_payload()
-                vid_feed_num += 1
+
+        elif current_message.purpose == Message.Purpose.VIDEO:
             else:
                 vid_feed_num = 0
-                vid_feed_str += curr_msg.get_payload()
+                vid_feed_str += current_message.get_payload()
                 try:
                     save_and_output_image(vid_feed_str, "vid_feed")
                 except Exception as e:
                     print(e)
                 vid_feed_str = b''
-        
-        elif curr_msg.purpose == Purpose.HIGH_DEFINITION_PHOTO: # indicates "HIGH DEFINITION PHOTO"
-            if hdp_num < curr_msg.number:
-                hdp_str += curr_msg.get_payload()
+
+        elif current_message.purpose == Message.Purpose.HIGH_DEFINITION_PHOTO:
+            if hdp_num < current_message.number:
+                hdp_str += current_message.get_payload()
                 hdp_num += 1
             else:
                 hdp_num = 0
-                hdp_str += curr_msg.get_payload()
+                hdp_str += current_message.get_payload()
                 try:
                     save_and_output_image(hdp_str, "hdp")
                 except Exception as e:
                     print(e)
                 hdp_str = b''
-        
-        elif curr_msg.purpose == Purpose.LOW_DEFINITION_PHOTO: # indicates "LOW DEFINITION PHOTO"
-            if ldp_num < curr_msg.number:
-                ldp_str += curr_msg.get_payload()
+
+        elif current_message.purpose == Message.Purpose.LOW_DEFINITION_PHOTO:
+            if ldp_num < current_message.number:
+                ldp_str += current_message.get_payload()
                 ldp_num += 1
             else:
                 ldp_num = 0
-                ldp_str += curr_msg.get_payload()
+                ldp_str += current_message.get_payload()
                 try:
                     save_and_output_image(ldp_str, "ldp")
                 except Exception as e:
                     print(e)
                 ldp_str = b''
-        
-        elif curr_msg.purpose == Purpose.FILE_CONTENTS: # indicates receiving a file
-            if curr_msg.number == 1:
-                current_file = curr_msg.get_payload().decode()
+
+        elif current_message.purpose == Message.Purpose.FILE_CONTENTS:
+            if current_message.number == 1:
+                current_file = current_message.get_payload().decode()
                 print(f'copying file {current_file}...')
-            elif curr_msg.number == 0:
+            elif current_message.number == 0:
                 with open(f'./{current_file}', 'ab') as f:
-                    f.write(curr_msg.get_payload())
+                    f.write(current_message.get_payload())
                 print(f"file {current_file} received.")
                 current_file = ''
             elif not current_file:
@@ -263,7 +262,7 @@ def process_messages() -> None:
             else:
                 print(f'writing to {current_file}.')
                 with open(f'./{current_file}', 'ab') as f:
-                    f.write(curr_msg.get_payload())
+                    f.write(current_message.get_payload())
 
 
 def save_and_output_image(buffer : bytearray, type : str) -> bool:
@@ -285,9 +284,8 @@ def save_and_output_image(buffer : bytearray, type : str) -> bool:
         return False
 
 # everything to do on shutdown
-def exit_main(executor : concurrent.futures.ThreadPoolExecutor):
-    global kill_threads
-    kill_threads = True
+def exit_main(executor : concurrent.futures.ThreadPoolExecutor, messageQueue : MessageQueue):
+    messageQueue.running = False
     executor.shutdown(wait=False, cancel_futures=True)
 
 
