@@ -15,7 +15,7 @@ if(DEFINED ENV{ROS_DISTRO})
     #message("* Found ROS2 ${FOUND_ROS2_DISTRO}")
 else()
     message("* ROS2 distro variable not set. Trying to figure it out...")
-    set(ROS2_DISTROS "ardent;crystal;dashing;eloquent;foxy;galactic;humble;rolling")
+    set(ROS2_DISTROS "ardent;crystal;dashing;eloquent;foxy;galactic;humble;jazzy;rolling")
     set(ROS2_FOUND FALSE)
     foreach(distro ${ROS2_DISTROS})
         if(NOT ROS2_FOUND)
@@ -33,12 +33,15 @@ if(ROS2_FOUND)
     if(${FOUND_ROS2_DISTRO} STREQUAL "foxy")
         #message("* ROS2 ${FOUND_ROS2_DISTRO} is officially supported by this package.")
         add_definitions(-DFOUND_FOXY)
-    elseif(${FOUND_ROS2_DISTRO} STREQUAL "iron")
-        #message("* ROS2 ${FOUND_ROS2_DISTRO} is officially supported by this package.")
-	add_definitions(-DFOUND_IRON)
     elseif(${FOUND_ROS2_DISTRO} STREQUAL "humble")
         #message("* ROS2 ${FOUND_ROS2_DISTRO} is officially supported by this package.")
         add_definitions(-DFOUND_HUMBLE)
+    elseif(${FOUND_ROS2_DISTRO} STREQUAL "iron")
+        #message("* ROS2 ${FOUND_ROS2_DISTRO} is officially supported by this package.")
+	    add_definitions(-DFOUND_IRON)    
+    elseif(${FOUND_ROS2_DISTRO} STREQUAL "jazzy")
+        #message("* ROS2 ${FOUND_ROS2_DISTRO} is officially supported by this package.")
+        add_definitions(-DFOUND_JAZZY)
     else()
         message("*** WARNING *** ROS2 ${FOUND_ROS2_DISTRO} is not officially supported by the package '${PROJECT_NAME}'. Correct operation is not guaranteed.")
     endif()
@@ -104,6 +107,7 @@ set(DEPENDENCIES
     stereo_msgs
     zed_msgs
     std_srvs
+    cob_srvs
     diagnostic_msgs
     diagnostic_updater
     visualization_msgs
@@ -132,6 +136,7 @@ find_package(stereo_msgs REQUIRED)
 
 find_package(image_transport REQUIRED)
 find_package(std_srvs REQUIRED)
+find_package(cob_srvs REQUIRED)
 find_package(diagnostic_msgs REQUIRED)
 find_package(diagnostic_updater REQUIRED)
 find_package(visualization_msgs REQUIRED)

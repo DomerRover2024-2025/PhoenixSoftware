@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+    <xacro:property name="swivel_r" value="0.0475"/>
+    <xacro:property name="swivel_l" value="0.015"/>
+
+    <xacro:property name="upper_arm_r" value="0.016"/>
+    <xacro:property name="upper_arm_l" value="0.5"/>
+
+    <xacro:property name="gearbox_r" value="0.05"/>
+    <xacro:property name="gearbox_l" value="0.025"/>
+
+    <xacro:property name="lower_arm_r" value="0.016"/>
+    <xacro:property name="lower_arm_l" value="0.5"/>
+
+    <xacro:property name="wrist_r" value="0.005"/>
+    <xacro:property name="wrist_l" value="0.05"/>
+
+    <xacro:property name="finger_l" value="0.005"/>
+    <xacro:property name="finger_w" value="0.03"/>
+    <xacro:property name="finger_h" value="0.03"/>
+
+    <xacro:property name="swivel_plate_l" value="0.215"/>
+    <xacro:property name="swivel_plate_w" value="0.048"/>
+    <xacro:property name="swivel_plate_h" value="0.048"/>
+
+    <xacro:property name="elbow_motor_r" value="0.01875"/>
+    <xacro:property name="elbow_motor_l" value="0.1075"/>
+
+    <xacro:property name="wrist_box_l" value="0.16"/>
+    <xacro:property name="wrist_box_w" value="0.05735"/>
+    <xacro:property name="wrist_box_h" value="0.056"/>
+    
+    <xacro:property name="mounting_pole_r" value="0.016"/>
+    <xacro:property name="mounting_pole_l" value="0.33"/>
+
+    <xacro:property name="actuator_base_r" value="0.0152"/>
+    <xacro:property name="actuator_base_l" value="0.272796"/>
+
+    <xacro:property name="actuator_shaft_r" value="0.01"/>
+    <xacro:property name="actuator_shaft_l" value="0.15"/>
+</robot>

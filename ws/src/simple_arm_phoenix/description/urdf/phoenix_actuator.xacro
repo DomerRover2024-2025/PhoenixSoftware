@@ -1,0 +1,95 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+ <link name="mounting_pole_link">
+        <inertial>
+            <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+            <mass value="0.0"/>
+            <inertia ixx="0.0" ixy="0.0" ixz="0.0" iyy="0.0" iyz="0.0" izz="0.0"/>
+        </inertial>
+        <visual>
+            <origin xyz="0.0 0.0 ${mounting_pole_l/2}" rpy="0.0 0.0 0.0"/>
+                <geometry>
+                    <cylinder radius="${mounting_pole_r}" length="${mounting_pole_l}"/>
+                </geometry>
+            <material name="">
+                <color rgba="1.0 0.0 0.0 1.0"/>
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="0.0 0.0 ${mounting_pole_l/2}" rpy="0.0 0.0 0.0"/>
+                <geometry>
+                    <cylinder radius="${mounting_pole_r}" length="${mounting_pole_l}"/>
+                </geometry>
+        </collision>
+    </link>
+
+    <link name="actuator_base_link">
+        <inertial>
+            <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+            <mass value="0.0"/>
+            <inertia ixx="0.0" ixy="0.0" ixz="0.0" iyy="0.0" iyz="0.0" izz="0.0"/>
+        </inertial>
+        <visual>
+            <origin xyz="${actuator_base_l / 2 + 0.012} 0.0 0.0 " rpy="0.0 ${pi/2} 0.0"/>
+            <geometry>
+                <cylinder radius="${actuator_base_r}" length="${actuator_base_l}"/>
+            </geometry>
+            <material name="">
+                <color rgba="1.0 0.0 0.0 1.0"/>
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="${actuator_base_l / 2 + 0.012} 0.0 0.0 " rpy="0.0 ${pi/2} 0.0"/>
+            <geometry>
+                <cylinder radius="${actuator_base_r}" length="${actuator_base_l}"/>
+            </geometry>
+        </collision>
+    </link>
+
+    <link name="actuator_shaft_link">
+        <inertial>
+            <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+            <mass value="0.0"/>
+            <inertia ixx="0.0" ixy="0.0" ixz="0.0" iyy="0.0" iyz="0.0" izz="0.0"/>
+        </inertial>
+        <visual name="">
+            <origin xyz="${actuator_shaft_l / 2} 0.0 0.0" rpy="0.0 ${pi/2} 0.0"/>
+            <geometry>
+                <cylinder radius="${actuator_shaft_r}" length="${actuator_shaft_l}"/>
+            </geometry>
+            <material name="">
+                <color rgba="1.0 0.0 0.0 1.0"/>
+            </material>
+        </visual>
+        <collision>
+           <origin xyz="${actuator_shaft_l / 2} 0.0 0.0" rpy="0.0 ${pi/2} 0.0"/>
+            <geometry>
+                <cylinder radius="${actuator_shaft_r}" length="${actuator_shaft_l}"/>
+            </geometry>
+        </collision>
+    </link>
+
+    <joint name="swivel_mounting_pole_joint" type="fixed">
+        <origin xyz="${-0.13} 0.0 0.0" rpy="0.0 0.0 0.0"/>
+        <parent link="swivel_link"/>
+        <child link="mounting_pole_link"/>
+    </joint>
+
+    <joint name="mounting_pole_actuator_base_joint" type="revolute">
+        <origin xyz="0.055 0.0 0.232" rpy="0.0 0.0 0.0"/>
+        <parent link="mounting_pole_link"/>
+        <child link="actuator_base_link"/>
+        <axis xyz="0.0 1.0 0.0"/>
+        <limit lower="${-pi}" upper="${pi}" effort="100.0" velocity="100.0"/>
+    </joint>
+
+    <joint name="actuator_base_actuator_shaft_joint" type="prismatic">
+        <origin xyz="${actuator_base_l + 0.012 - 0.15} 0.0 0.0" rpy="0.0 0.0 0.0"/>
+        <parent link="actuator_base_link"/>
+        <child link="actuator_shaft_link"/>
+        <axis xyz="1.0 0.0 0.0"/>
+        <limit lower="0.0" upper="0.15" effort="100.0" velocity="100.0"/>
+    </joint>
+    
+</robot>

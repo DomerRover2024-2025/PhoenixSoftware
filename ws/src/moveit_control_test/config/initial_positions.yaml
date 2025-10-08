@@ -1,0 +1,9 @@
+# Default initial positions for phoenix's ros2_control fake system
+
+initial_positions:
+  base_swivel_joint: 0
+  gearbox_lower_arm_joint: 0
+  lower_arm_wrist_joint: 0
+  swivel_upper_arm_joint: 0
+  wrist_rotation_left_finger_joint: 0
+  wrist_wrist_rotation_joint: 0
