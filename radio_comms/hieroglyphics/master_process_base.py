@@ -11,7 +11,7 @@
 ###################
 
 import serial
-import re
+import sys
 import numpy as np
 import cv2
 import time
@@ -41,8 +41,8 @@ kill_threads = False
 def main():
     port = "/dev/cu.usbserial-BG00HO5R"
     #port = "/dev/cu.usbserial-B001VC58"
-    #port = "COM3"
-    port = "/dev/ttyUSB0"
+    port = "COM4"
+    #port = "/dev/ttyUSB0"
     baud = 57600
     timeout = 0.1
     ser = serial.Serial(port=port, baudrate=baud, timeout=timeout)
@@ -109,7 +109,7 @@ def main():
             # Send test messages
             elif request == "test":
                 while True:
-                    hello = input("enter tester phrase, exit to exit: ")
+                    hello = input("enter tester phrase, exit to exit >> ")
                     if hello == "exit":
                         break
                     msg = Message(purpose=0, payload=hello.encode())
@@ -117,7 +117,7 @@ def main():
 
             elif request == "vid":
                 try: 
-                    stop_video_request = input("n to stop feed, else start feed? >>")
+                    stop_video_request = input("n to stop feed, else start feed? >> ")
                     if stop_video_request == 'n':
                         cam_num = request_camera()
                         if cam_num == -1:
@@ -128,7 +128,8 @@ def main():
                     b_cam = struct.pack(">b", cam_num)
                     msg = Message(new=True, purpose=3, payload=b_cam)
                     ser.write(msg.get_as_bytes())
-                except TypeError:
+                except TypeError as e:
+                    print(f"--Error: {e}")
                     print("Returning to menu.")
             
             elif request == "hdp":
@@ -138,7 +139,32 @@ def main():
             elif request == "ldp":
                 msg = Message(new=True, purpose=6, payload=bytes(1))
                 ser.write(msg.get_as_bytes())
-    except KeyboardInterrupt or Exception:
+
+            elif request == 'f':
+                print('Enter path to file:')
+                path = input('>> ')
+                if not os.path.exists(path):
+                    print(f"Error: file {path} does not exist. Returning to menu.")
+                    continue
+                with open(path, 'rb') as f:
+                    contents = f.read()
+                # print(contents)
+                msg_title = Message(new=True, purpose=10, number=1, payload=os.path.basename(path).encode())
+                ser.write(msg_title.get_as_bytes())
+                msgs : list[Message] = Message.message_split(purpose_for_all=10, big_payload=contents, index_offset=1)
+                for msg in msgs:
+                    print(msg)
+                    ser.write(msg.get_as_bytes())
+            
+            elif request == 'cp':
+                print('Enter path to file ON ROVER:')
+                path = input(">> ")
+                ser.write(Message(new=True, purpose=11, payload=path.encode()).get_as_bytes())
+                
+    except KeyboardInterrupt:
+        exit(0)
+    except Exception as e:
+        print(f"--Error (main loop): exception. {e}")
         exit(0)
 
 #####################
@@ -162,6 +188,7 @@ def read_from_port(ser: serial.Serial):
             b_id = read_num_bytes(ser, 1)
             # ID, PURPOSE, NUMBER, SIZE, PAYLOAD, CHECKSUM
             if len(b_id) == 0:
+                print('length of bid is 0 somehow?')
                 continue
             #print("Got a message")
             pot_msg = Message(new=False)
@@ -176,9 +203,12 @@ def read_from_port(ser: serial.Serial):
             #print("Got number")
             b_size = read_num_bytes(ser, 4)
             #print(struct.calcsize(">L"))
-            pot_msg.set_size(b_size)
+            pot_msg.set_size(struct.unpack(">L", b_size)[0])
             #print(f"{b_id}{b_purpose}{b_number}{b_size}")
             print("Got size", pot_msg.size_of_payload)
+
+            if pot_msg.size_of_payload > 4096:
+                print(f"--Error: buffer? ID: {pot_msg.msg_id}, purpose: {pot_msg.purpose}, num: {pot_msg.number}, len_payload: {pot_msg.size_of_payload}")
 
             # print(pot_msg.size_of_payload)
             payload = read_num_bytes(ser, pot_msg.size_of_payload)
@@ -187,13 +217,13 @@ def read_from_port(ser: serial.Serial):
             #print("Got payload")
             checksum = read_num_bytes(ser, 1)
             #print("Got checksum")
-
             #print(checksum)
-            if not Message.test_checksum(bytestring=pot_msg.get_as_bytes()[:-1], checksum=checksum):
-                print("Checksum error")
-                continue
-            messages_from_rover.append(pot_msg)
-            print(f"Message added {pot_msg}; len = {len(messages_from_rover)}")
+            the_same, calculated_checksum = Message.test_checksum(bytestring=pot_msg.get_as_bytes()[:-1], checksum=checksum)
+            if not the_same:    
+                print(f"--Error: checksum. Received checksum: {checksum} | calculated checksum: {calculated_checksum}. ID: {pot_msg.msg_id}, purpose: {pot_msg.purpose}, num: {pot_msg.number}, len_payload: {len(payload)}")
+            else:
+                messages_from_rover.append(pot_msg)
+                print(f"Message added {pot_msg}; len = {len(messages_from_rover)}")
         except Exception as e:
             print(e)
 
@@ -201,24 +231,21 @@ def read_from_port(ser: serial.Serial):
 def process_messages() -> None:
     print("thread activated :)")
 
-    vid_feed_str = b''
-    vid_feed_num = 0
-    vid_feed_dict = {}
-
-    hdp_str = b''
-    hdp_num = 0
-    hdp_dict = {}
-
     ldp_str = b''
+    hdp_str = b''
+    vid_feed_str = b''
+
     ldp_num = 0
-    ldp_dict = {}
+    hdp_num = 0
+    vid_feed_num = 0
 
     # Continuously check for messages, process them according to their purpose.
     while not kill_threads:
-
         if len(messages_from_rover) == 0:
             continue
+
         curr_msg : Message = messages_from_rover.popleft()
+
         if curr_msg.purpose == 0: # indicates ERROR
             error_msg = curr_msg.get_payload().decode()
             print(error_msg)
@@ -227,50 +254,6 @@ def process_messages() -> None:
 
         elif curr_msg.purpose == 2: # indicates "HEARTBEAT / position"
             pass
-
-        # if curr_msg.purpose == 3: # indicates 'VIDEO FEED'
-        #     # curr_msg.number: number of 'packets' needed to reconstruct the image
-        #     if curr_msg.number != 0:
-        #         video_feed_dict[curr_msg.number] = curr_msg.get_payload()
-
-        #     else:
-        #         for i in range(1, len(video_feed_dict) + 1):
-        #             if i not in video_feed_dict:
-        #                 video_feed_dict = {}
-        #                 video_feed_str = b''
-        #                 print("some error occurred in getting the video feed")
-        #             video_feed_str += video_feed_dict[i]
-
-        #         video_feed_str += curr_msg.get_payload()
-        #         try:
-        #             save_and_output_image(video_feed_str, "vid_feed")
-        #         except Exception as e:
-        #             print(e)
-
-        #         video_feed_dict = {}
-        #         video_feed_str = b''
-
-        # if curr_msg.purpose == 4: # indicates 'VIDEO FEED'
-        #     # curr_msg.number: number of 'packets' needed to reconstruct the image
-        #     if curr_msg.number != 0:
-        #         hdp_dict[curr_msg.number] = curr_msg.get_payload()
-
-        #     else:
-        #         for i in range(1, len(hdp_dict) + 1):
-        #             if i not in video_feed_dict:
-        #                 hdp_dict = {}
-        #                 hdp_str = b''
-        #                 print("some error occurred in getting the high definition photo")
-        #             hdp_str += hdp_dict[i]
-                    
-        #         hdp_str += curr_msg.get_payload()
-        #         try:
-        #             save_and_output_image(video_feed_str, "vid_feed")
-        #         except Exception as e:
-        #             print(e)
-
-                # video_feed_dict = {}
-                # video_feed_str = b''
         
         elif curr_msg.purpose == 3: # indicates "VIDEO FEED"
             if vid_feed_num < curr_msg.number:
@@ -310,6 +293,24 @@ def process_messages() -> None:
                 except Exception as e:
                     print(e)
                 ldp_str = b''
+        
+        elif curr_msg.purpose == 10: # indicates receiving a photo
+            if curr_msg.number == 1:
+                current_file = curr_msg.get_payload().decode()
+                print(f'copying file {current_file}...')
+            elif curr_msg.number == 0:
+                with open(f'./{current_file}', 'ab') as f:
+                    f.write(curr_msg.get_payload())
+                print(f"file {current_file} received.")
+                current_file = ''
+            elif not current_file:
+                error_str = "--Error: file contents received, but no file name for said contents."
+                print(error_str, file=sys.stderr)
+            else:
+                print(f'writing to {current_file}.')
+                with open(f'./{current_file}', 'ab') as f:
+                    f.write(curr_msg.get_payload())
+
 
 
 def save_and_output_image(buffer : bytearray, type : str) -> bool:
@@ -362,6 +363,8 @@ def print_options() -> None:
 
     print("(wrd) for sending word to arm to type out")
     print("(hbt) Heartbeat mode: Receive coordinates")
+    print("(f) Copy file from base station to rover")
+    print("(cp) Copy file from rover to base station")
     print("(test) Send over tester strings for debugging purposes")
     print("(literally anything else) See menu options again")
 

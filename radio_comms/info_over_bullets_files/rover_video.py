@@ -13,11 +13,11 @@ CAM_PATHS = [
     '/dev/v4l/by-id/usb-046d_081b_32750F50-video-index0',
     '/dev/v4l/by-id/usb-Sonix_Technology_Co.__Ltd._USB_Live_camera_SN0001-video-index0'
 ]
-NUM_CAMS = len(CAM_PATHS)
+NUM_CAMS = 1
 # create publish socket and video capture object
 context = zmq.Context()
 socket = context.socket(zmq.PUB)
-caps = [cv2.VideoCapture(path) for path in CAM_PATHS]
+caps = [cv2.VideoCapture(0)]
 
 
 # bind the host and port
@@ -35,7 +35,7 @@ while True:
             except Exception as e:
                 print(e)
             #socket.send(b'adsfasdfasdf')
-        time.sleep(TIME_BETWEEN_FRAMES)
+        time.sleep(0.5)
 for cap in caps:
     cap.release()
 cv2.destroyAllWindows()

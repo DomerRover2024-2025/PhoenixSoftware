@@ -7,14 +7,13 @@
 
 import serial
 import cv2
-import sys
+import os
 import struct
 import numpy as np
 import concurrent.futures
 from message import Message
 from scheduler import Scheduler
 from collections import deque
-from datetime import datetime
 import atexit
 import time
 #np.set_printoptions(threshold=sys.maxsize)
@@ -30,14 +29,14 @@ kill_threads = False
 # !TODO to be replaced by a message manager
 messages_to_process = deque()
 scheduler = Scheduler(ser=None, topics=None)
-cap = cv2.VideoCapture(CAM_PATH)
+cap = cv2.VideoCapture(0)
 capture_video_eh = False
 
 def main():
-    #port = "/dev/cu.usbserial-BG00HO5R"
+    port = "/dev/cu.usbserial-BG00HO5R"
     #port = "/dev/tty.usbserial-B001VC58"
     #port = "COM4"
-    port = "/dev/ttyTHS1"
+    #port = "/dev/ttyTHS1"
     baud = 57600
     timeout = 0.1
     ser = serial.Serial(port=port, baudrate=baud, timeout=timeout)
@@ -50,7 +49,8 @@ def main():
         "vid_feed": 10,
         "position": 1,
         "hdp": 1,
-        "ldp": 1
+        "ldp": 1,
+        "file": 1
     }
 
     scheduler.ser = ser
@@ -73,30 +73,25 @@ def main():
             b_input = ser.read(1)
             if len(b_input) != 0:
                 pot_msg = Message(new=False)
-                b_input += ser.read(1)
+                b_input += read_num_bytes(ser, 1)
                 pot_msg.set_msg_id(struct.unpack(">H", b_input)[0])
-                b_input = ser.read(1)
-                pot_msg.set_purpose(b_input)
-                b_input = ser.read(1)
+                b_input = read_num_bytes(ser, 1)
+                pot_msg.set_purpose(struct.unpack(">B", b_input)[0])
+                b_input = read_num_bytes(ser, 1)
                 pot_msg.number = struct.unpack(">B", b_input)[0]
-                b_input = ser.read(struct.calcsize(">L"))
+                b_input = read_num_bytes(ser, 4)
                 pot_msg.set_size(b_input)
-                payload = b''
 
-                while len(payload) < pot_msg.size_of_payload:
-                    payload += ser.read(pot_msg.size_of_payload - len(payload))
-                    if kill_threads:
-                        return
-
+                payload = read_num_bytes(ser, pot_msg.size_of_payload)
                 pot_msg.set_payload(payload)
-                checksum = ser.read(1)
-                if not Message.test_checksum(bytestring=pot_msg.get_as_bytes()[:-1], checksum=checksum):
-                    print("Checksum error")
-                    continue
-
-                # TODO replace with a message manager
-                messages_to_process.append(pot_msg)
-                print(f"Message added")
+                checksum = read_num_bytes(ser, 1)
+                the_same, calculated_checksum = Message.test_checksum(bytestring=pot_msg.get_as_bytes()[:-1], checksum=checksum)
+                if not the_same:    
+                    print(f"--Error: checksum. Received checksum: {checksum} | calculated checksum: {calculated_checksum}")
+                else:
+                    # TODO replace with a message manager
+                    messages_to_process.append(pot_msg)
+                    print(f"Message added")
 
             if received_info_from_gnss_eh:
                 coord_x = 1.2345
@@ -164,13 +159,23 @@ def process_messages() -> None:
     # TODO: TODO TODO FIX THIS when connected to the jetson
     #arduino = serial.Serial('/dev/ttyACM0')
 
+    current_file = ''
+
     while not kill_threads:
         if len(messages_to_process) == 0:
             continue
         print("Processing message", len(messages_to_process))
         curr_msg : Message = messages_to_process.popleft()
         Message.log_message(curr_msg, MSG_LOG)
-        if curr_msg.purpose == 1: # indicates DRIVING
+
+        if curr_msg.purpose == 0: # indicates DEBUGGING to the rover
+            print("debugging message")
+            payload = curr_msg.get_payload()
+            print(payload.decode())
+            return_str = f"string {payload.decode()} received."
+            scheduler.add_single_message("status", Message(purpose=0, payload=return_str.encode()))
+
+        elif curr_msg.purpose == 1: # indicates DRIVING
             #print("driving message")
             payload = curr_msg.get_payload()
             print(len(payload))
@@ -185,7 +190,7 @@ def process_messages() -> None:
             #arduino.write(f"{lspeed} {rspeed}\n".encode())
 
         #!TODO ACTUALLY PICK CAMERA TO SEE
-        if curr_msg.pupose == 3: # indicates video
+        elif curr_msg.purpose == 3: # indicates video
             global capture_video_eh
             global cap
             cam_num = struct.unpack(">b", curr_msg.payload)[0]
@@ -219,28 +224,60 @@ def process_messages() -> None:
         elif curr_msg.purpose == 6: # indicates TAKE ME A BAD PHOTO
             print("getting an ldp photo")
             try:
-                length, buffer = capture_image(90, resize_width=VID_WIDTH)
+                _, buffer = capture_image(90, resize_width=VID_WIDTH)
             except Exception as e:
-                print(e)
+                error_str = f'--Error: could not capture hdp. {e}'
+                print(error_str)
+                scheduler.add_single_message("status", Message(purpose=0, payload=error_str.encode()))
+
             if buffer is None:
-                error_str = "Error: could not capture a high definition photo."
+                error_str = "Error: could not capture hdp."
                 print(error_str)
                 scheduler.add_single_message("status", Message(purpose=0, payload=error_str.encode()))
             else:
                 try:
-                    msgs =  Message.message_split(big_payload=buffer.tobytes(), purpose_for_all=6)
+                    msgs = Message.message_split(big_payload=buffer.tobytes(), purpose_for_all=6)
                     scheduler.add_list_of_messages("ldp", msgs)
                     print("Message added of length ", len(buffer.tobytes()))
                 except Exception as e:
                     print(e)
 
-            #arduino_ser.write(msg.encode())
-        elif curr_msg.purpose == 0: # indicates DEBUGGING to the rover
-            #print("debugging message")
-            payload = curr_msg.get_payload()
-            print(payload.decode())
-            return_str = f"string {payload.decode()} received."
-            scheduler.add_single_message("status", Message(purpose=0, payload=return_str.encode()))
+        elif curr_msg.purpose == 10: # indicates FILE NAME
+            if curr_msg.number == 1:
+                current_file = curr_msg.get_payload().decode()
+                # print(f'copying file {current_file}...')
+            elif curr_msg.number == 0:
+                with open(f'./{current_file}', 'ab') as f:
+                    f.write(curr_msg.get_payload())
+                print(f"file {current_file} received.")
+                current_file = ''
+            elif not current_file:
+                error_str = "--Error: file contents received, but no file name for said contents."
+                print(error_str)
+                scheduler.add_single_message("status", Message(purpose=0, payload=error_str.encode()))
+            else:
+                print('writing to file.')
+                with open(f'./{current_file}', 'ab') as f:
+                    f.write(curr_msg.get_payload())
+        
+        elif curr_msg.purpose == 11: # indicates request for a file
+            path = curr_msg.get_payload().decode()
+            if not os.path.exists(path):
+                error_str = f"--Error: file/path {path} does not exist."
+                print(error_str)
+                scheduler.add_single_message("status", Message(purpose=0, payload=error_str.encode()))
+                continue
+            with open(path, 'rb') as f:
+                contents = f.read()
+            print(f'copied contents of {path}')
+            msg_title = Message(new=True, purpose=10, number=1, payload=os.path.basename(path).encode())
+            scheduler.add_single_message("file", msg_title)
+            scheduler.add_list_of_messages("file", Message.message_split(purpose_for_all=10, big_payload=contents, index_offset=1))
+
+        #arduino_ser.write(msg.encode())
+        
+        else:
+            print("--Error: message matched no known purposes.")
 
 # weighted round robin algorithm?
 # implement with a thread, I think
@@ -259,7 +296,7 @@ def send_messages_via_scheduler():
                     #print(f"{curr_msg.get_as_bytes()[4:8]}")
                     #print(f"Message sent: {curr_msg} of length {curr_msg.size_of_payload}")
                 except Exception as e:
-                    print(e)
+                    print(f'--Error: in the scheduler loop: {e}')
     # talkerNode.destroy_node()
     # rclpy.shutdown()
     # arduino.close()
@@ -292,6 +329,16 @@ def exit_handler(executor : concurrent.futures.ThreadPoolExecutor):
     global kill_threads
     kill_threads = True
     executor.shutdown()
+
+def read_num_bytes(ser: serial.Serial, numbytes : int):
+    read_bytes = b''
+    while len(read_bytes) < numbytes:
+        if kill_threads:
+            return
+        read_bytes += ser.read(numbytes - len(read_bytes))
+
+    return read_bytes
+
 
 
 if __name__ == "__main__":
