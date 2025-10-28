@@ -3,32 +3,49 @@
  * Controls 3 left wheels and 3 right wheels (grouped)
  * Receives two space-separated values over serial: "left right\n"
  * Each value is applied to all left or all right wheels.
+ * Baud rate reduced to 9600 (default for Python serial).
+ * All motors are set to STOP at startup.
  */
 
 // Left wheels: FL, BL, ML
-const int FL_PWM_PIN = 10; 
-const int FL_DIR_PIN = 8;   // Motor controller 1
-const int BL_PWM_PIN = 24;  
-const int BL_DIR_PIN = 2;   // Motor controller 2
-const int ML_PWM_PIN = 13; 
-const int ML_DIR_PIN = 6;   // Motor controller 3
+const int FL_PWM_PIN = 10; const int FL_DIR_PIN = 8;   // Motor controller 1
+const int BL_PWM_PIN = 9;  const int BL_DIR_PIN = 2;   // Motor controller 2
+const int ML_PWM_PIN = 13; const int ML_DIR_PIN = 6;   // Motor controller 3
 
 // Right wheels: FR, MR, RB
-const int FR_PWM_PIN = 5;  
-const int FR_DIR_PIN = 3;   // Motor controller 2
-const int MR_PWM_PIN = 7;  
-const int MR_DIR_PIN = 4;   // Motor controller 3
-const int RB_PWM_PIN = 11; 
-const int RB_DIR_PIN = 12;  // Motor controller 1
+const int FR_PWM_PIN = 5;  const int FR_DIR_PIN = 3;   // Motor controller 2
+const int MR_PWM_PIN = 7;  const int MR_DIR_PIN = 4;   // Motor controller 3
+const int RB_PWM_PIN = 11; const int RB_DIR_PIN = 12;  // Motor controller 1
 
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(9600); // Reduced to match Python's default
+
   pinMode(FL_PWM_PIN, OUTPUT); pinMode(FL_DIR_PIN, OUTPUT);
   pinMode(BL_PWM_PIN, OUTPUT); pinMode(BL_DIR_PIN, OUTPUT);
   pinMode(ML_PWM_PIN, OUTPUT); pinMode(ML_DIR_PIN, OUTPUT);
   pinMode(FR_PWM_PIN, OUTPUT); pinMode(FR_DIR_PIN, OUTPUT);
   pinMode(MR_PWM_PIN, OUTPUT); pinMode(MR_DIR_PIN, OUTPUT);
   pinMode(RB_PWM_PIN, OUTPUT); pinMode(RB_DIR_PIN, OUTPUT);
+
+  // Force all wheels to STOP at startup:
+  analogWrite(FL_PWM_PIN, 0); digitalWrite(FL_DIR_PIN, LOW);
+  analogWrite(BL_PWM_PIN, 0); digitalWrite(BL_DIR_PIN, LOW);
+  analogWrite(ML_PWM_PIN, 0); digitalWrite(ML_DIR_PIN, LOW);
+  analogWrite(FR_PWM_PIN, 0); digitalWrite(FR_DIR_PIN, LOW);
+  analogWrite(MR_PWM_PIN, 0); digitalWrite(MR_DIR_PIN, LOW);
+  analogWrite(RB_PWM_PIN, 0); digitalWrite(RB_DIR_PIN, LOW);
+
+
+
+  // --- RECOMMENDED ADDITION ---
+  // Wait 1 second for the Jetson's OS to finish probing
+  delay(1000); 
+
+  // Flush (clear) any junk data from the serial buffer
+  while (Serial.available() > 0) {
+    Serial.read();               
+  }
+  // --- END OF ADDITION ---
 }
 
 void setMotor(int speed, int pwmPin, int dirPin) {
