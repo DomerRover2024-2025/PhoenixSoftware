@@ -6,7 +6,7 @@ import serial
 import struct
 import sys
 from datetime import datetime
-from enum import Enum
+from enum import IntEnum
 
 ### MESSAGE STRUCTURE:
     # UID: 2 BYTES?
@@ -18,7 +18,7 @@ class Message:
 
     message_count = 0
 
-    class Purpose(Enum):
+    class Purpose(IntEnum):
         ERROR=0
         MOVEMENT=1
         HEARTBEAT=2
@@ -39,6 +39,7 @@ class Message:
             Message.message_count += 1
         else:
             self.msg_id : int = -1
+
         self.purpose : int = purpose
         self.number : int = number
         self.payload : bytes = payload
@@ -68,14 +69,14 @@ class Message:
         # if not self:
         #     return None
         b_id = struct.pack(">H", self.msg_id)
-        b_purpose = struct.pack(">B", self.purpose)
+        b_purpose = struct.pack(">B", int(self.purpose))
         b_number = struct.pack(">B", self.number)
         b_size = struct.pack(">L", self.size_of_payload)
         bytestring = b_id + b_purpose + b_number + b_size + self.payload
         return bytestring + Message.calculate_checksum(bytestring)
     
     def set_purpose(self, purpose):
-        self.purpose = purpose
+        self.purpose = Message.Purpose(purpose)
 
     def set_payload(self, payload):
         self.payload = payload

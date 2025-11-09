@@ -5,24 +5,26 @@
 ###################
 
 import serial
-import message
+from message import Message
 from collections import deque
+from readerWriter import ReaderWriter
+from messageQueue import MessageQueue
+import traceback
 
 class Scheduler:
 
     # topics: dict[str (topic name), int (wrr value)]
     # messages: dict[str (topic name), deque[message]]
-    def __init__(self, ser : serial.Serial, topics : dict[str, int]=None):
-        self.ser : serial.Serial = ser
+    def __init__(self, readerWriter : ReaderWriter, topics : dict[str, int]=None):
+        self.readerWriter = readerWriter
+
         if not topics: 
             self.topics : dict[str, int] = {}
-            self.messages : dict[str, deque[message.Message]] = {}
-        elif type(topics) != dict:
-            raise TypeError
+            self.messages : dict[str, deque[Message]] = {}
         else:
             self.topics : dict[str, int] = topics
-            self.messages : dict[str, deque[message.Message]] = {topic : deque() for topic in self.topics}
-    
+            self.messages : dict[str, deque[Message]] = {topic : deque() for topic in self.topics}
+
     def set_topics(self, topics) -> None:
         self.topics = topics
         self.messages = {topic : deque() for topic in self.topics}
@@ -36,15 +38,44 @@ class Scheduler:
 
     # add message to a given "topic"
     # I call this a "topic" but it's probably called a "server" for an actual wrr
-    def add_single_message(self, topic_name, msg : message.Message) -> None:
+    def add_single_message(self, topic_name, msg : Message) -> None:
         if topic_name not in self.messages:
             raise IndexError
+        print("added message to scheduler")
         self.messages[topic_name].append(msg)
-    
-    def add_list_of_messages(self, topic_name, lst_of_msgs : list[message.Message]) -> None:
+
+    def add_list_of_messages(self, topic_name, lst_of_msgs) -> None:
         if topic_name not in self.messages:
             raise IndexError
         self.messages[topic_name].extend(lst_of_msgs)
+
+    # weighted round robin algorithm?
+    # implement with a thread, I think
+    def send_messages_via_scheduler(self, messageQueue : MessageQueue):
+     try:
+        print("started up the wrr")
+        while messageQueue.isRunning():
+            for topic in self.topics: # all the topic names
+                c = 0 # packet counter
+                '''
+                if topic == 'vid_feed' and not capture_video_eh:
+                    self.messages[topic].clear()
+                '''
+                while self.messages[topic] and c < self.topics[topic]:
+                    try:
+                        current_message = self.messages[topic].popleft()
+                        print("writing message")
+                        self.readerWriter.writeMessage(current_message)
+                        c += 1
+                        #print(f"{curr_msg.get_as_bytes()[4:8]}")
+                        #print(f"Message sent: {curr_msg} of length {curr_msg.size_of_payload}")
+                    except Exception as e:
+                        print(f'--Error: in the scheduler loop: {e}')
+     except:
+        traceback.format_exc()
+        # talkerNode.destroy_node()
+        # rclpy.shutdown()
+        # arduino.close()
 
     # print as a string
     def __str__(self) -> str:
