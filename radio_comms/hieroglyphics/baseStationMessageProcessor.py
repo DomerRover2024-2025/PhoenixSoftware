@@ -4,6 +4,7 @@ import time
 import traceback
 import numpy as np
 from message import Message
+from scheduler import Scheduler
 
 class BaseStationMessageProcessor:
     class OngoingBytes:
@@ -16,19 +17,25 @@ class BaseStationMessageProcessor:
             self.bytestring = b''
             self.count = 0
 
-    def __init__(self, log : str):
+    def __init__(self, log : str, scheduler : Scheduler):
         self.currentFile = ""
         self.counter = 0
         self.log = log
+        open(self.log, 'w').close()
+        self.scheduler = scheduler
         self.lowDefPhotoBytes = self.OngoingBytes('ldp')
         self.highDefPhotoBytes = self.OngoingBytes('hdp')
         self.videoFeedBytes = self.OngoingBytes('vid')
+
+    def handleAcknowledgment(self, message : Message):
+        messageID = int.from_bytes(message.get_payload(), 'big')
+        self.scheduler.acknowledgmentReceived(messageID)
 
     def handleDebugMessage(self, message : Message):
         errorString = message.get_payload().decode()
         print('error received: ' + errorString)
         with open(self.log, 'a') as f:
-            f.write(f'{errorString}\n')
+            f.write(f'bahahaha {errorString}\n')
 
     def readFileOverPort(self, message : Message) -> None:
         if message.number == 1:

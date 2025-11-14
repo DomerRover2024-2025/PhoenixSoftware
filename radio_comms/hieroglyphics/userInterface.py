@@ -1,13 +1,14 @@
 from messageQueue import MessageQueue
 from readerWriter import ReaderWriter
 from message import Message
+from scheduler import Scheduler
 import os
 import capture_controls
 
 class UserInterface:
-    def __init__(self, messageLog : str, readerWriter : ReaderWriter):
+    def __init__(self, messageLog : str, scheduler : Scheduler):
         self.log = messageLog
-        self.readerWriter = readerWriter
+        self.scheduler = scheduler
 
     def printLog(self) -> None:
         tail_output = subprocess.run(["tail", '-n', 10, self.log], capture_output=True, text=True)
@@ -24,7 +25,7 @@ class UserInterface:
         payload = b_lspeed + b_rspeed + b_scalar + b_camleft + b_camright + b_button_x + b_button_y
 
         # pack up the message
-        controls_message = Message(new=True, purpose=1, payload=payload)
+        controls_message = Message(new=True, purpose=Message.Purpose.MOVEMENT, payload=payload)
         return controls_message
     
 
@@ -38,20 +39,20 @@ class UserInterface:
             print("No joystick found")
             return
         while True:
-            controls_message = createDrivingMessage(*next(gen))
-            self.readerWriter.writeMessage(controls_message)
+            controlsMessage = createDrivingMessage(*next(gen))
+            self.scheduler.addMessage(controlsMessage)
         
     def sendTestMessages(self) -> None:
         while True:
             testString = input("Tester phrase (exit to exit) >> ")
             if testString == "exit":
                 break
-            message = Message(purpose=0, payload=testString.encode())
-            self.readerWriter.writeMessage(message)
+            message = Message(purpose=Message.Purpose.ERROR, payload=testString.encode())
+            self.scheduler.addMessage(message)
 
     def sendRequestMessage(self, purpose : Message.Purpose):
         message = Message(new=True, purpose=purpose, payload=bytes(1))
-        self.readerWriter.writeMessage(message)
+        self.scheduler.addMessage(message)
 
     def request_camera(self) -> int:
         try:
@@ -71,7 +72,7 @@ class UserInterface:
                 return
         b_cam = struct.pack(">b", cam_num)
         message = Message(new=True, purpose=Message.Purpose.VIDEO, payload=b_cam)
-        self.readerWriter.writeMessage(message)
+        self.scheduler.addMessage(message)
 
     def sendFileContents(self):
         print('Enter path to file:')
@@ -85,9 +86,8 @@ class UserInterface:
         message_title = Message(new=True, purpose=Message.Purpose.FILE_CONTENTS, number=1, payload=basename.encode())
         messages = Message.message_split(purpose_for_all=Message.Purpose.FILE_CONTENTS, big_payload=contents, index_offset=1)
 
-        self.readerWriter.writeMessage(message_title)
-        for message in messages:
-            self.readerWriter.writeMessage(message)
+        self.scheduler.addMessage(message_title)
+        self.scheduler.addListOfMessages(message)
 
     def print_options(self) -> None:
         print("----------------")
@@ -145,4 +145,4 @@ class UserInterface:
                 print('Enter path to file ON ROVER:')
                 path = input(">> ")
                 message = Message(new=True, purpose=Message.Purpose.REQUEST_FILE, payload=path.encode())
-                self.readerWriter.writeMessage(message)
+                self.scheduler.addMessage(message)

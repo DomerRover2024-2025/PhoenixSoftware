@@ -13,7 +13,6 @@
 import subprocess
 import concurrent.futures
 import traceback
-import atexit
 from serial import Serial
 
 from message import Message
@@ -24,6 +23,7 @@ from readerWriter import ReaderWriter
 from serialReaderWriter import SerialReaderWriter
 from socketReaderWriter import SocketReaderWriter
 from userInterface import UserInterface
+from scheduler import Scheduler
 
 #######################
 ##### GLOBAL VARS #####
@@ -50,13 +50,20 @@ def main():
     messageQueue : MessageQueue = MessageQueue()
     # readerWriter : ReaderWriter = SerialReaderWriter(port, baud, timeout, messageQueue)
     readerWriter : ReaderWriter = SocketReaderWriter('localhost', 9999, messageQueue, rover=False)
-    userInterface : UserInterface = UserInterface(MSG_LOG, readerWriter)
+
+    topics = {
+        'all': 1
+    } 
+
+    scheduler : Scheduler = Scheduler(readerWriter, topics)
+    userInterface : UserInterface = UserInterface(MSG_LOG, scheduler)
 
     # 3 concurrent threads: one read from serial port, 
     # one for processing messages, one for writing messages
-    executor = concurrent.futures.ThreadPoolExecutor(3)
-    future = executor.submit(processMessages, messageQueue, ERR_LOG)
+    executor = concurrent.futures.ThreadPoolExecutor(4)
+    future = executor.submit(processMessages, messageQueue, scheduler, ERR_LOG)
     future = executor.submit(readMessages, readerWriter, messageQueue)
+    future = executor.submit(scheduler.sendMessages, messageQueue)
 
     try:
         userInterface.inputLoop()
@@ -81,40 +88,37 @@ def readMessages(readerWriter : ReaderWriter, messageQueue : MessageQueue) -> No
     print('exited reading')
 
 ##### THE BRAINS FOR DECODING IMPORTED MESSAGES FROM ROVER
-def processMessages(messageQueue : MessageQueue, ERR_LOG : str) -> None:
-    messageProcessor = BaseStationMessageProcessor(ERR_LOG)
-    print("starting message processing loop...")
-
+def processMessages(messageQueue : MessageQueue, scheduler : Scheduler, ERR_LOG : str) -> None:
+    messageProcessor = BaseStationMessageProcessor(ERR_LOG, scheduler)
     while messageQueue.isRunning():
         # TODO: fix spin waiting.
-        if not messageQueue:
+        if len(messageQueue) == 0:
             continue
 
         print("popping message")
-        current_message : Message = messageQueue.pop()
-        print(f"message popped of purpose {current_message.purpose}")
+        currentMessage : Message = messageQueue.pop()
+        print(f"message popped of purpose {currentMessage.purpose}")
 
-        if current_message.purpose == Message.Purpose.ERROR: 
-            messageProcessor.handleDebugMessage(current_message)
+        if currentMessage.purpose == Message.Purpose.ERROR: 
+            messageProcessor.handleDebugMessage(currentMessage)
 
-        elif current_message.purpose == Message.Purpose.HEARTBEAT: 
+        elif currentMessage.purpose == Message.Purpose.HEARTBEAT: 
             pass
 
-        elif current_message.purpose == Message.Purpose.VIDEO:
-            messageProcessor.handleVideoMessage(current_message)
+        elif currentMessage.purpose == Message.Purpose.VIDEO:
+            messageProcessor.handleVideoMessage(currentMessage)
 
-        elif current_message.purpose == Message.Purpose.HIGH_DEFINITION_PHOTO:
-            messageProcessor.handleHighDefPhotoMessage(current_message)
+        elif currentMessage.purpose == Message.Purpose.HIGH_DEFINITION_PHOTO:
+            messageProcessor.handleHighDefPhotoMessage(currentMessage)
 
-        elif current_message.purpose == Message.Purpose.LOW_DEFINITION_PHOTO:
-            messageProcessor.handleLowDefPhotoMessage(current_message)
+        elif currentMessage.purpose == Message.Purpose.LOW_DEFINITION_PHOTO:
+            messageProcessor.handleLowDefPhotoMessage(currentMessage)
 
-        elif current_message.purpose == Message.Purpose.FILE_CONTENTS:
-            messageProcessor.readFileOverPort(current_message) 
+        elif currentMessage.purpose == Message.Purpose.FILE_CONTENTS:
+            messageProcessor.readFileOverPort(currentMessage) 
 
         else:
             print("unknown message purpose")
-    print('Exiting processing messages')
 
 # everything to do on shutdown
 def exit_main(executor : concurrent.futures.ThreadPoolExecutor, messageQueue : MessageQueue):

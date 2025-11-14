@@ -46,7 +46,7 @@ or to your local if you don't want to make a virtual environment.
 You must ensure that the rover and user have the correct IP addresses.
 
 As a note, here are the addresses of relevant items:
-- Bullet-1: 192.168.1.1
+- Bullet-1: 192.168.11.1
 - Bullet-2: 192.168.11.20
 - Jetson: 192.168.11.17
 - User: 192.168.11.179

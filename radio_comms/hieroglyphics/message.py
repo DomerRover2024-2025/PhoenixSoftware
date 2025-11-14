@@ -19,12 +19,13 @@ class Message:
     message_count = 0
 
     class Purpose(IntEnum):
-        ERROR=0
-        MOVEMENT=1
-        HEARTBEAT=2
-        VIDEO=3
-        HIGH_DEFINITION_PHOTO=4
-        ARM_WORD=5
+        ACK=0
+        ERROR=1
+        MOVEMENT=2
+        HEARTBEAT=3
+        VIDEO=4
+        HIGH_DEFINITION_PHOTO=5
+        ARM_WORD=6
         LOW_DEFINITION_PHOTO=6
         CSV=8
         CAMERA_VISION=9

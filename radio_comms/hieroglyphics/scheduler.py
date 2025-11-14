@@ -24,7 +24,7 @@ class Scheduler:
         else:
             self.topics : dict[str, int] = topics
             self.messages : dict[str, deque[Message]] = {topic : deque() for topic in self.topics}
-
+        self.retransmission : MessageQueue = MessageQueue()
     def set_topics(self, topics) -> None:
         self.topics = topics
         self.messages = {topic : deque() for topic in self.topics}
@@ -38,22 +38,25 @@ class Scheduler:
 
     # add message to a given "topic"
     # I call this a "topic" but it's probably called a "server" for an actual wrr
-    def add_single_message(self, topic_name, msg : Message) -> None:
-        if topic_name not in self.messages:
+    def addMessage(self, message: Message, topic : str='all') -> None:
+        if topic not in self.messages:
             raise IndexError
         print("added message to scheduler")
-        self.messages[topic_name].append(msg)
+        self.messages[topic].append(message)
 
-    def add_list_of_messages(self, topic_name, lst_of_msgs) -> None:
-        if topic_name not in self.messages:
+    def addListOfMessages(self, messageList, topic : str='all') -> None:
+        if topic not in self.messages:
             raise IndexError
-        self.messages[topic_name].extend(lst_of_msgs)
+        self.messages[topic].extend(messageList)
+
+    def handleAcknowledgment(self, messageID : int):
+        self.retransmission.remove(messageID)
 
     # weighted round robin algorithm?
     # implement with a thread, I think
-    def send_messages_via_scheduler(self, messageQueue : MessageQueue):
+    def sendMessages(self, messageQueue : MessageQueue):
      try:
-        print("started up the wrr")
+        print("started up the wrr", self.topics)
         while messageQueue.isRunning():
             for topic in self.topics: # all the topic names
                 c = 0 # packet counter
@@ -71,6 +74,12 @@ class Scheduler:
                         #print(f"Message sent: {curr_msg} of length {curr_msg.size_of_payload}")
                     except Exception as e:
                         print(f'--Error: in the scheduler loop: {e}')
+            # pop a message
+            '''
+            failedMessage = self.retransmission.pop()
+            self.readerWriter.writeMessage(failedMessage)
+            self.retransmission.append(failedMessage)
+            '''
      except:
         traceback.format_exc()
         # talkerNode.destroy_node()
@@ -82,4 +91,4 @@ class Scheduler:
         ret_str = ""
         for topic in self.topics:
             ret_str =f'{ret_str}:name={topic},wrr={self.topics[topic]},num_msg={len(self.messages[topic])}'
-        return ret_str[1:]
+        return ret_str

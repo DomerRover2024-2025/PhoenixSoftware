@@ -18,13 +18,17 @@ class MessageQueue:
         return self.queue.popleft()
 
     def isRunning(self) -> bool:
-        isQueueRunning = False
+        isQueueRunning = self.running 
         with self.lock:
             isQueueRunning = self.running
         return isQueueRunning
 
+    def remove(self, messageID : int) -> None:
+        for message in self.queue:
+            if message.msg_id == messageID:
+                self.queue.remove(message)
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         with self.lock:
             self.running = False
 
