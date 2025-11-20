@@ -4,29 +4,26 @@ import struct
 from imageCapturer import ImageCapturer
 from scheduler import Scheduler
 from message import Message
+from messageProcessor import MessageProcessor
 
 class RoverMessageProcessor:
 
     VIDEO_WIDTH=200 
 
     def __init__(self, log : str, scheduler : Scheduler, arduinoPath='/dev/ttyACM0', cameraPaths=0):
-        self.log = log
-        self.scheduler = scheduler
+        self.messageProcessor = MessageProcessor(log, scheduler)
         if arduinoPath:
             self.arduino = Serial(arduinoPath)
         self.imageCapturer = ImageCapturer(cameraPaths)
 
+    def generateAcknowledgment(self, message : Message) -> Message:
+        return self.messageProcessor.generateAcknowledgment(message)
+
     def handleAcknowledgment(self, message : Message):
-        messageID = int.from_bytes(message.get_payload(), 'big')
-        self.scheduler.acknowledgmentReceived(messageID)
+        self.messageProcessor.handleAcknowledgment(message)
 
     def handleDebugMessage(self, message : Message):
-        errorString = message.get_payload().decode()
-        print(errorString)
-        with open(self.log, 'a') as f:
-            f.write(f'{errorString}\n')
-        acknowledgment = Message(purpose=Message.Purpose.ERROR, payload=f'{errorString} received.'.encode())
-        self.scheduler.addMessage(acknowledgment, 'status')
+        self.messageProcessor.handleDebugMessage(message)
 
     def handleDrivingMessage(self, message : Message) -> bytes:
         payload = message.get_payload()
@@ -57,14 +54,13 @@ class RoverMessageProcessor:
         if buffer is None:
             print('error no image could be grabbed')
             errorString = 'Error: could not capture a high definition photo.'
-            self.scheduler.addListOfMessages(Message(purpose=Message.Purpose.ERROR, payload=error_str.encode()), 'status')
+            self.messageProcessor.addListOfMessages(Message(purpose=Message.Purpose.ERROR, payload=error_str.encode()), 'status')
 
         print('splitting messages')
         msgs = Message.message_split(big_payload=buffer.tobytes(), purpose_for_all=Message.Purpose.HIGH_DEFINITION_PHOTO)
         print('messages split')
-        self.scheduler.addListOfMessages(msgs, 'hdp')
+        self.messageProcessor.addListOfMessages(msgs, 'hdp')
         print('Message added of length ', len(buffer.tobytes()))
-
 
     def handleLowDefPhotoRequestMessage(self, message : Message):
         print('getting an ldp photo')
@@ -72,11 +68,11 @@ class RoverMessageProcessor:
         if buffer is None:
             error_str = 'Error: could not capture hdp.'
             print(error_str)
-            self.scheduler.addMessage(Message(purpose=Message.Purpose.ERROR, payload=error_str.encode()), 'status')
+            self.messageProcessor.addMessage(Message(purpose=Message.Purpose.ERROR, payload=error_str.encode()), 'status')
             return
 
         msgs = Message.message_split(big_payload=buffer.tobytes(), purpose_for_all=Message.Purpose.LOW_DEFINITION_PHOTO)
-        self.scheduler.addListOfMessages(msgs, 'ldp')
+        self.messageProcessor.addListOfMessages(msgs, 'ldp')
         print('Message added of length ', len(buffer.tobytes()))
 
     def handleFileContentsRequestMessage(self, message : Message):
@@ -84,19 +80,19 @@ class RoverMessageProcessor:
         if not os.path.exists(path):
             error_str = f'--Error: filepath {path} does not exist.'
             print(error_str)
-            self.scheduler.addMessage(Message(purpose=Message.Purpose.ERROR, payload=error_str.encode()), 'status')
+            self.messageProcessor.addMessage(Message(purpose=Message.Purpose.ERROR, payload=error_str.encode()), 'status')
             return
 
         with open(path, 'rb') as f:
             contents = f.read()
 
-        msg_title = Message(new=True, purpose=10, number=1, payload=os.path.basename(path).encode())
-        self.scheduler.addMessage(msg_title, 'file')
-        self.scheduler.addListOfMessages(Message.message_split(purpose_for_all=10, big_payload=contents, index_offset=1), 'file')
+        msg_title = Message(new=True, purpose=Message.Purpose.FILE_CONTENTS, number=1, payload=os.path.basename(path).encode())
+        self.messageProcessor.addMessage(msg_title, 'file')
+        self.messageProcessor.addListOfMessages(Message.message_split(purpose_for_all=Message.Purpose.FILE_CONTENTS, big_payload=contents, index_offset=1), 'file')
 
     def capture_video(self):
         while self.imageCapturer.isTakingVideo():
             self.imageCapturer.captureImage(30, ImageCapturer.VIDEO_WIDTH)
 
-        self.scheduler.addListOfMessages(Message.message_split(big_payload=frame.tobytes(), purpose_for_all=Message.Purpose.VIDEO), 'vid_feed')
+        self.messageProcessor.addListOfMessages(Message.message_split(big_payload=frame.tobytes(), purpose_for_all=Message.Purpose.VIDEO), 'vid_feed')
 

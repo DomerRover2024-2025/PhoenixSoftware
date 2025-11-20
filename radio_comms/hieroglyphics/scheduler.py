@@ -9,22 +9,23 @@ from message import Message
 from collections import deque
 from readerWriter import ReaderWriter
 from messageQueue import MessageQueue
-import traceback
+from concurrentSet import ConcurrentSet
+import time
 
 class Scheduler:
 
+    RETRANSMISSION_COUNTER=1
+
     # topics: dict[str (topic name), int (wrr value)]
     # messages: dict[str (topic name), deque[message]]
-    def __init__(self, readerWriter : ReaderWriter, topics : dict[str, int]=None):
+    def __init__(self, readerWriter : ReaderWriter, topics : dict[str, int]={}):
         self.readerWriter = readerWriter
+        self.topics : dict[str, int] = topics
+        self.topics['acknowledgment'] = 5
+        self.messages : dict[str, deque[Message]] = {topic : deque() for topic in self.topics}
+        self.retransmissionQueue : deque[Message] = deque()
+        self.acknowledgedMessageIDs : ConcurrentSet = ConcurrentSet()
 
-        if not topics: 
-            self.topics : dict[str, int] = {}
-            self.messages : dict[str, deque[Message]] = {}
-        else:
-            self.topics : dict[str, int] = topics
-            self.messages : dict[str, deque[Message]] = {topic : deque() for topic in self.topics}
-        self.retransmission : MessageQueue = MessageQueue()
     def set_topics(self, topics) -> None:
         self.topics = topics
         self.messages = {topic : deque() for topic in self.topics}
@@ -40,17 +41,19 @@ class Scheduler:
     # I call this a "topic" but it's probably called a "server" for an actual wrr
     def addMessage(self, message: Message, topic : str='all') -> None:
         if topic not in self.messages:
-            raise IndexError
-        print("added message to scheduler")
+            raise IndexError(f'Scheduler cannot add message to topic "{topic}" as it does not exist')
         self.messages[topic].append(message)
 
     def addListOfMessages(self, messageList, topic : str='all') -> None:
         if topic not in self.messages:
-            raise IndexError
+            raise IndexError(f'Scheduler cannot add list of messages to topic "{topic}" as it does not exist')
         self.messages[topic].extend(messageList)
 
     def handleAcknowledgment(self, messageID : int):
-        self.retransmission.remove(messageID)
+        self.acknowledgedMessageIDs.add(messageID)
+
+    def wasMessageAcknowledged(self, message : Message):
+        return message.msg_id in self.acknowledgedMessageIDs
 
     # weighted round robin algorithm?
     # implement with a thread, I think
@@ -60,28 +63,30 @@ class Scheduler:
         while messageQueue.isRunning():
             for topic in self.topics: # all the topic names
                 c = 0 # packet counter
-                '''
-                if topic == 'vid_feed' and not capture_video_eh:
-                    self.messages[topic].clear()
-                '''
                 while self.messages[topic] and c < self.topics[topic]:
                     try:
-                        current_message = self.messages[topic].popleft()
-                        print("writing message")
-                        self.readerWriter.writeMessage(current_message)
+                        currentMessage = self.messages[topic].popleft()
+                        self.readerWriter.writeMessage(currentMessage)
+                        print(f'sent message of purpose {currentMessage.purpose.name}')
+
+                        if currentMessage.purpose != Message.Purpose.ACK:
+                            self.retransmissionQueue.append(currentMessage)
+
                         c += 1
-                        #print(f"{curr_msg.get_as_bytes()[4:8]}")
-                        #print(f"Message sent: {curr_msg} of length {curr_msg.size_of_payload}")
                     except Exception as e:
                         print(f'--Error: in the scheduler loop: {e}')
+
             # pop a message
-            '''
-            failedMessage = self.retransmission.pop()
-            self.readerWriter.writeMessage(failedMessage)
-            self.retransmission.append(failedMessage)
-            '''
-     except:
-        traceback.format_exc()
+            limit = min(Scheduler.RETRANSMISSION_COUNTER, len(self.retransmissionQueue))
+            for _ in range(limit):
+                currentMessage = self.retransmissionQueue.popleft()
+                if not self.wasMessageAcknowledged(currentMessage):
+                    self.readerWriter.writeMessage(currentMessage)
+                    print('readded message')
+                    time.sleep(1)
+                    self.retransmissionQueue.append(currentMessage)
+     except Exception as e:
+        print('scheduler', e)
         # talkerNode.destroy_node()
         # rclpy.shutdown()
         # arduino.close()

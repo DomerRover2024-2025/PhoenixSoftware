@@ -26,7 +26,7 @@ class Message:
         VIDEO=4
         HIGH_DEFINITION_PHOTO=5
         ARM_WORD=6
-        LOW_DEFINITION_PHOTO=6
+        LOW_DEFINITION_PHOTO=7
         CSV=8
         CAMERA_VISION=9
         FILE_CONTENTS=10

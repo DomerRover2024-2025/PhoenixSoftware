@@ -9,29 +9,33 @@ class MessageQueue:
     def __init__(self):
         self.queue : list[Message] = deque()
         self.running : bool = True
-        self.lock = threading.Lock()
+        self.runningLock = threading.Lock()
+        self.condition = threading.Condition()
 
     def append(self, message : Message):
-        self.queue.append(message)
+        with self.condition:
+            self.queue.append(message)
+            self.condition.notify()
 
+    # Blocking pop.
     def pop(self) -> Message:
-        return self.queue.popleft()
+        with self.condition:
+            while len(self) == 0:
+                self.condition.wait()
+            return self.queue.popleft()
 
     def isRunning(self) -> bool:
         isQueueRunning = self.running 
-        with self.lock:
+        with self.runningLock:
             isQueueRunning = self.running
         return isQueueRunning
 
-    def remove(self, messageID : int) -> None:
-        for message in self.queue:
-            if message.msg_id == messageID:
-                self.queue.remove(message)
-
     def shutdown(self) -> None:
-        with self.lock:
+        with self.runningLock:
             self.running = False
 
     def __len__(self):
-        return len(self.queue)
-
+        length = 0
+        with self.condition:
+            length = len(self.queue)
+        return length

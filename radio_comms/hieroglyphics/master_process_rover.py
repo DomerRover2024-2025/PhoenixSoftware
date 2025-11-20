@@ -21,6 +21,7 @@ from roverMessageProcessor import RoverMessageProcessor
 from socketReaderWriter import SocketReaderWriter
 from serialReaderWriter import SerialReaderWriter
 from readerWriter import ReaderWriter
+from concurrentSet import ConcurrentSet
 
 def main():
     port = '/dev/cu.usbserial-BG00HO5R'
@@ -56,20 +57,23 @@ def main():
     
     try:
         while True:
+            time.sleep(3)
             message = readerWriter.readMessage()
             if message:
                 messageQueue.append(message)
+                print(f'message added to queue of purpose {message.purpose.name}')
 
-    except KeyboardInterrupt or Exception:
+    except KeyboardInterrupt:
         pass
+    except Exception as e:
+        print('rover reading: ', e)
+        
     messageQueue.shutdown()
     executor.shutdown()
 
 # capture_video_eh = False
 
 def process_messages(messageQueue : MessageQueue, scheduler : Scheduler) -> None:
- try:
-
     print('thread activated :)')
 
     # rclpy.init(args=None)
@@ -90,16 +94,25 @@ def process_messages(messageQueue : MessageQueue, scheduler : Scheduler) -> None
 
     # messageProcessor = RoverMessageProcessor(MSG_LOG, scheduler, '/dev/ttyACM0')
     messageProcessor = RoverMessageProcessor(MSG_LOG, scheduler, None)
-    receivedMessageIDs = set()
+    alreadyProcessedMessages = ConcurrentSet()
 
-    while messageQueue.isRunning():
-        if len(messageQueue) == 0:
-            continue
+    try:
+     while messageQueue.isRunning():
 
         currentMessage = messageQueue.pop()
-
-        receivedMessageIDs.add(currentMessage.msg_id)
         Message.log_message(currentMessage, MSG_LOG)
+
+        if currentMessage.purpose == Message.Purpose.ACK:
+            messageProcessor.handleAcknowledgment(currentMessage)
+            continue
+
+        acknowledgment = messageProcessor.generateAcknowledgment(currentMessage) 
+        scheduler.addMessage(acknowledgment, 'acknowledgment')
+
+        if currentMessage.msg_id in alreadyProcessedMessages:
+            continue
+
+        alreadyProcessedMessages.add(currentMessage.msg_id)
 
         if currentMessage.purpose == Message.Purpose.ERROR:
             messageProcessor.handleDebugMessage(currentMessage)
@@ -121,9 +134,9 @@ def process_messages(messageQueue : MessageQueue, scheduler : Scheduler) -> None
         
         else:
             print('--Error: message matched no known purposes.')
+    except Exception as e:
+        print('--error(process messages): ', e)
     messageProcessor.imageCapturer.stopTakingVideo()
- except Exception:
-    print('--error(process messages): ', traceback.format_exc())
 
 # import rclpy
 # from rclpy.node import Node

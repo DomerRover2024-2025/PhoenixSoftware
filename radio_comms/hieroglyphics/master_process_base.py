@@ -24,6 +24,7 @@ from serialReaderWriter import SerialReaderWriter
 from socketReaderWriter import SocketReaderWriter
 from userInterface import UserInterface
 from scheduler import Scheduler
+from concurrentSet import ConcurrentSet
 
 #######################
 ##### GLOBAL VARS #####
@@ -90,14 +91,25 @@ def readMessages(readerWriter : ReaderWriter, messageQueue : MessageQueue) -> No
 ##### THE BRAINS FOR DECODING IMPORTED MESSAGES FROM ROVER
 def processMessages(messageQueue : MessageQueue, scheduler : Scheduler, ERR_LOG : str) -> None:
     messageProcessor = BaseStationMessageProcessor(ERR_LOG, scheduler)
-    while messageQueue.isRunning():
-        # TODO: fix spin waiting.
-        if len(messageQueue) == 0:
-            continue
-
-        print("popping message")
+    alreadyProcessedMessages = ConcurrentSet()
+    try:
+     while messageQueue.isRunning():
+        print('popping message...')
         currentMessage : Message = messageQueue.pop()
         print(f"message popped of purpose {currentMessage.purpose}")
+
+        if currentMessage.purpose == Message.Purpose.ACK:
+            messageProcessor.handleAcknowledgment(currentMessage)
+            continue
+
+        acknowledgment = messageProcessor.generateAcknowledgment(currentMessage) 
+        scheduler.addMessage(acknowledgment, 'acknowledgment')
+
+        # We've already processed this message.
+        if currentMessage.msg_id in alreadyProcessedMessages:
+            continue
+
+        alreadyProcessedMessages.add(currentMessage.msg_id)
 
         if currentMessage.purpose == Message.Purpose.ERROR: 
             messageProcessor.handleDebugMessage(currentMessage)
@@ -119,13 +131,14 @@ def processMessages(messageQueue : MessageQueue, scheduler : Scheduler, ERR_LOG 
 
         else:
             print("unknown message purpose")
+    except Exception as e:
+        print(f"-- --{e}-- --")
 
 # everything to do on shutdown
 def exit_main(executor : concurrent.futures.ThreadPoolExecutor, messageQueue : MessageQueue):
     messageQueue.shutdown()
     print('shut down queue')
     executor.shutdown(wait=False, cancel_futures=True)
-
 
 if __name__ == "__main__":
     main()

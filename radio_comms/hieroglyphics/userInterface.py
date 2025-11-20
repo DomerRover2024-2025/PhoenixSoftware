@@ -41,7 +41,7 @@ class UserInterface:
         while True:
             controlsMessage = createDrivingMessage(*next(gen))
             self.scheduler.addMessage(controlsMessage)
-        
+
     def sendTestMessages(self) -> None:
         while True:
             testString = input("Tester phrase (exit to exit) >> ")

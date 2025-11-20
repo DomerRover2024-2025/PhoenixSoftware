@@ -4,9 +4,11 @@ import time
 import traceback
 import numpy as np
 from message import Message
+from messageProcessor import MessageProcessor
 from scheduler import Scheduler
 
 class BaseStationMessageProcessor:
+
     class OngoingBytes:
         def __init__(self, name : str):
             self.name = name
@@ -20,22 +22,19 @@ class BaseStationMessageProcessor:
     def __init__(self, log : str, scheduler : Scheduler):
         self.currentFile = ""
         self.counter = 0
-        self.log = log
-        open(self.log, 'w').close()
-        self.scheduler = scheduler
+        self.messageProcessor = MessageProcessor(log, scheduler)
         self.lowDefPhotoBytes = self.OngoingBytes('ldp')
         self.highDefPhotoBytes = self.OngoingBytes('hdp')
         self.videoFeedBytes = self.OngoingBytes('vid')
 
+    def generateAcknowledgment(self, message : Message) -> Message:
+        return self.messageProcessor.generateAcknowledgment(message)
+
     def handleAcknowledgment(self, message : Message):
-        messageID = int.from_bytes(message.get_payload(), 'big')
-        self.scheduler.acknowledgmentReceived(messageID)
+        self.messageProcessor.handleAcknowledgment(message)
 
     def handleDebugMessage(self, message : Message):
-        errorString = message.get_payload().decode()
-        print('error received: ' + errorString)
-        with open(self.log, 'a') as f:
-            f.write(f'bahahaha {errorString}\n')
+        self.messageProcessor.handleDebugMessage(message)
 
     def readFileOverPort(self, message : Message) -> None:
         if message.number == 1:
@@ -58,10 +57,12 @@ class BaseStationMessageProcessor:
                 f.write(message.get_payload())
 
     def handleOngoingMessage(self, message : Message, ongoingBytes : OngoingBytes):
+        print('received another ldp message')
         if ongoingBytes.count < message.number:
             ongoingBytes.bytestring += message.get_payload()
             ongoingBytes.count += 1
         else:
+            print('received final ldp message')
             ongoingBytes.bytestring += message.get_payload()
             buffer = ongoingBytes.bytestring
             ongoingBytes.reset()
