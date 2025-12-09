@@ -42,8 +42,8 @@ def main():
     }
 
     messageQueue : MessageQueue = MessageQueue()
-    # readerWriter : ReaderWriter = SerialReaderWriter(port, baud, timeout, messageQueue)
-    readerWriter : ReaderWriter = SocketReaderWriter('localhost', 9999, messageQueue, rover=True)
+    readerWriter : ReaderWriter = SerialReaderWriter(port, baud, timeout, messageQueue)
+    # readerWriter : ReaderWriter = SocketReaderWriter('localhost', 9999, messageQueue, rover=True)
     scheduler = Scheduler(readerWriter=readerWriter, topics=topics)
 
     executor = concurrent.futures.ThreadPoolExecutor(4)

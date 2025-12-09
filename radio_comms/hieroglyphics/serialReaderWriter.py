@@ -7,8 +7,8 @@ class SerialReaderWriter(ReaderWriter):
     
     def __init__(self, port : str, baud : int, timeout : float, messageQueue : MessageQueue) -> None:
         self.ser : Serial = Serial(port=port, baudrate=baud, timeout=timeout)
-        ser.reset_input_buffer()
-        ser.reset_output_buffer()
+        self.ser.reset_input_buffer()
+        self.ser.reset_output_buffer()
 
     def readBytes(self, num_bytes : int):
         read_bytes = b''
