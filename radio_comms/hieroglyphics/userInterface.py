@@ -4,6 +4,8 @@ from message import Message
 from scheduler import Scheduler
 import os
 import capture_controls
+import struct
+import subprocess
 
 class UserInterface:
     def __init__(self, messageLog : str, scheduler : Scheduler):
@@ -39,7 +41,7 @@ class UserInterface:
             print("No joystick found")
             return
         while True:
-            controlsMessage = createDrivingMessage(*next(gen))
+            controlsMessage = self.createDrivingMessage(*next(gen))
             self.scheduler.addMessage(controlsMessage)
 
     def sendTestMessages(self) -> None:
@@ -48,7 +50,10 @@ class UserInterface:
             if testString == "exit":
                 break
             message = Message(purpose=Message.Purpose.ERROR, payload=testString.encode())
-            self.scheduler.addMessage(message)
+            try:
+                self.scheduler.addMessage(message)
+            except Exception as e:
+                print(f'--sending message: {e}')
 
     def sendRequestMessage(self, purpose : Message.Purpose):
         message = Message(new=True, purpose=purpose, payload=bytes(1))
@@ -67,7 +72,7 @@ class UserInterface:
         stop_request = input("n to stop feed, else start: >> ")
         cam_num = -1
         if stop_request == 'n':
-            cam_num = request_camera()
+            cam_num = self.request_camera()
             if cam_num == -1:
                 return
         b_cam = struct.pack(">b", cam_num)
@@ -87,7 +92,7 @@ class UserInterface:
         messages = Message.message_split(purpose_for_all=Message.Purpose.FILE_CONTENTS, big_payload=contents, index_offset=1)
 
         self.scheduler.addMessage(message_title)
-        self.scheduler.addListOfMessages(message)
+        self.scheduler.addListOfMessages(messages)
 
     def print_options(self) -> None:
         print("----------------")
