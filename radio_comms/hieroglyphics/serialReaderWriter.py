@@ -19,6 +19,10 @@ class SerialReaderWriter(ReaderWriter):
 
         return read_bytes
 
+    def writeMessage(self, message : Message):
+        self.ser.write(message.get_as_bytes())
+        
+
 ##### READ FROM THE SERIAL PORT for incoming messages
     def readMessage(self) -> Message:
         potentialMessage = Message(new=False)
