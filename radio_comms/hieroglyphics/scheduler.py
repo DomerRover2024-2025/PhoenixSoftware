@@ -60,6 +60,7 @@ class Scheduler:
     def sendMessages(self, messageQueue : MessageQueue):
      try:
         print("started up the wrr", self.topics)
+        start = time.time()
         while messageQueue.isRunning():
             for topic in self.topics: # all the topic names
                 c = 0 # packet counter
@@ -77,13 +78,15 @@ class Scheduler:
                         print(f'--Error: in the scheduler loop: {e}')
 
             # pop a message
+            if time.time() - start < 1:
+                continue
+            start = time.time()
             limit = min(Scheduler.RETRANSMISSION_COUNTER, len(self.retransmissionQueue))
             for _ in range(limit):
                 currentMessage = self.retransmissionQueue.popleft()
                 if not self.wasMessageAcknowledged(currentMessage):
                     self.readerWriter.writeMessage(currentMessage)
                     print('readded message')
-                    time.sleep(1)
                     self.retransmissionQueue.append(currentMessage)
      except Exception as e:
         print('scheduler', e)

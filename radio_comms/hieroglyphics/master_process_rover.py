@@ -57,7 +57,6 @@ def main():
     
     try:
         while True:
-            time.sleep(3)
             message = readerWriter.readMessage()
             if message:
                 messageQueue.append(message)
