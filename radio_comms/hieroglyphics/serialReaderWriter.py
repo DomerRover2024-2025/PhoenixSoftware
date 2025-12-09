@@ -1,4 +1,5 @@
 from serial import Serial
+import struct
 from message import Message
 from readerWriter import ReaderWriter
 from messageQueue import MessageQueue
