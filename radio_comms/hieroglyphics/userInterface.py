@@ -19,12 +19,14 @@ class UserInterface:
     def createDrivingMessage(self, lspeed, rspeed, scalar, camleft, camright, x, y) -> Message:
         b_lspeed = struct.pack(">h", int(lspeed))
         b_rspeed = struct.pack(">h", int(rspeed))
+        '''
         b_scalar = struct.pack(">f", scalar)
         b_camleft = struct.pack(">B", camleft)
         b_camright = struct.pack(">B", camright)
         b_button_x = struct.pack(">B", camright)
         b_button_y = struct.pack(">B", camright)
-        payload = b_lspeed + b_rspeed + b_scalar + b_camleft + b_camright + b_button_x + b_button_y
+        '''
+        payload = b_lspeed + b_rspeed # + b_scalar + b_camleft + b_camright + b_button_x + b_button_y
 
         # pack up the message
         controls_message = Message(new=True, purpose=Message.Purpose.MOVEMENT, payload=payload)
@@ -43,6 +45,15 @@ class UserInterface:
         while True:
             controlsMessage = self.createDrivingMessage(*next(gen))
             self.scheduler.addMessage(controlsMessage)
+
+    def handleControlsCommandLine(self) -> None:
+        floatString = input("Enter two ints separated by spaces:\n>> ")
+        try:
+            b_leftSpeed, b_rightSpeed = [ struct.pack(">h", int(x)) for x in floatString.split() ]
+            message = Message(new=True, purpose=Message.Purpose.MOVEMENT, payload=(b_leftSpeed + b_rightSpeed))
+            self.scheduler.addMessage(message)
+        except ValueError:
+            print("Please enter integers next time.")
 
     def sendTestMessages(self) -> None:
         while True:
@@ -114,6 +125,7 @@ class UserInterface:
         print("(f) Copy file from base station to rover")
         print("(cp) Copy file from rover to base station")
         print("(test) Send over tester strings for debugging purposes")
+        print("(stop) Make rover stop moving right now!!!")
         print("(literally anything else) See menu options again")
 
     def inputLoop(self) -> None:
@@ -132,7 +144,13 @@ class UserInterface:
                 self.printLog()
 
             elif request == "dr":
-                self.handleControlsFromController()
+                # self.handleControlsFromController()
+                self.handleControlsCommandLine()
+            
+            elif request == "stop":
+                b_leftSpeed, b_rightSpeed = [ struct.pack(">h", int(x)) for x in (0, 0) ]
+                message = Message(new=True, purpose=Message.Purpose.MOVEMENT, payload=(b_leftSpeed + b_rightSpeed))
+                self.scheduler.addMessage(message)
 
             elif request == "vid":
                 self.sendVideoRequestMessage()

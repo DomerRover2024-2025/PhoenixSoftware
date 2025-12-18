@@ -25,17 +25,19 @@ class RoverMessageProcessor:
     def handleDebugMessage(self, message : Message):
         self.messageProcessor.handleDebugMessage(message)
 
-    def handleDrivingMessage(self, message : Message) -> bytes:
+    def handleDrivingMessage(self, message : Message):
         payload = message.get_payload()
         lspeed = struct.unpack('>h', payload[0:2])[0]
         rspeed = struct.unpack('>h', payload[2:4])[0]
+        '''
         speed_scalar = struct.unpack('>f', payload[4:8])[0]
         cam_left = struct.unpack('>B', payload[8:9])[0]
         cam_right = struct.unpack('>B', payload[9:10])[0]
         button_x = struct.unpack('>B', payload[10:11])[0]
         button_y = struct.unpack('>B', payload[11:12])[0]
+        '''
 
-        return (lspeed, rspeed, speed_scalar, cam_left, cam_right, button_x, button_y)
+        print(f'{lspeed} {rspeed} speeds')
 
     # TODO: This currently just sends a single frame.
     # This ought to query the true camera, and have it continue to send photos back here.
