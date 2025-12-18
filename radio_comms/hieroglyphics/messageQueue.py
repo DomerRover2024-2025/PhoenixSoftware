@@ -21,7 +21,9 @@ class MessageQueue:
     def pop(self) -> Message:
         with self.condition:
             while len(self) == 0:
-                self.condition.wait()
+                self.condition.wait(timeout=1)
+                if not self.isRunning():
+                    return None
             return self.queue.popleft()
 
     def isRunning(self) -> bool:

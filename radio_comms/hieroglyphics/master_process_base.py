@@ -49,8 +49,8 @@ def main():
     open(MSG_LOG, 'w').close()
 
     messageQueue : MessageQueue = MessageQueue()
-    # readerWriter : ReaderWriter = SerialReaderWriter(port, baud, timeout, messageQueue)
-    readerWriter : ReaderWriter = SocketReaderWriter('localhost', 9999, messageQueue, rover=False)
+    readerWriter : ReaderWriter = SerialReaderWriter(port, baud, timeout, messageQueue)
+    # readerWriter : ReaderWriter = SocketReaderWriter('localhost', 9999, messageQueue, rover=False)
 
     topics = {
         'all': 1
@@ -96,6 +96,9 @@ def processMessages(messageQueue : MessageQueue, scheduler : Scheduler, ERR_LOG 
      while messageQueue.isRunning():
         print('popping message...')
         currentMessage : Message = messageQueue.pop()
+        if currentMessage is None:
+            return None
+
         print(f"message popped of purpose {currentMessage.purpose}")
 
         if currentMessage.purpose == Message.Purpose.ACK:
