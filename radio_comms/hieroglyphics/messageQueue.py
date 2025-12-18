@@ -27,7 +27,7 @@ class MessageQueue:
             return self.queue.popleft()
 
     def isRunning(self) -> bool:
-        isQueueRunning = self.running 
+        isQueueRunning = False
         with self.runningLock:
             isQueueRunning = self.running
         return isQueueRunning
