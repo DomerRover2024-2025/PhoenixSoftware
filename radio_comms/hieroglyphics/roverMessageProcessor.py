@@ -14,6 +14,8 @@ class RoverMessageProcessor:
         self.messageProcessor = MessageProcessor(log, scheduler)
         if arduinoPath:
             self.arduino = Serial(arduinoPath)
+        else:
+            self.arduino = None
         self.imageCapturer = ImageCapturer(cameraPaths)
 
     def generateAcknowledgment(self, message : Message) -> Message:
@@ -38,6 +40,8 @@ class RoverMessageProcessor:
         '''
 
         print(f'{lspeed} {rspeed} speeds')
+        if arduino is not None:
+            arduino.write(msg.encode())
 
     # TODO: This currently just sends a single frame.
     # This ought to query the true camera, and have it continue to send photos back here.

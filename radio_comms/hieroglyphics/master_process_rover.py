@@ -91,6 +91,7 @@ def process_messages(messageQueue : MessageQueue, scheduler : Scheduler) -> None
         '/dev/v4l/by-id/usb-Technologies__Inc._ZED_2i_OV0001-video-index0'
     ]
 
+    # TODO: Change these lines out when trying to write to the motors.
     # messageProcessor = RoverMessageProcessor(MSG_LOG, scheduler, '/dev/ttyACM0')
     messageProcessor = RoverMessageProcessor(MSG_LOG, scheduler, None)
     alreadyProcessedMessages = ConcurrentSet()
