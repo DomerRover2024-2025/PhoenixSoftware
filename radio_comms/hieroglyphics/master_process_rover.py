@@ -25,9 +25,10 @@ from concurrentSet import ConcurrentSet
 
 def main():
     # port = '/dev/cu.usbserial-BG00HO5R'
-    port = '/dev/tty.usbserial-B001VC58'
+    # port = '/dev/tty.usbserial-B001VC58'
     #port = 'COM4'
     #port = '/dev/ttyTHS1'
+    port = '/dev/ttyUSB0'
     baud = 57600
     timeout = 0.1
 
@@ -92,8 +93,8 @@ def process_messages(messageQueue : MessageQueue, scheduler : Scheduler) -> None
     ]
 
     # TODO: Change these lines out when trying to write to the motors.
-    # messageProcessor = RoverMessageProcessor(MSG_LOG, scheduler, '/dev/ttyACM0')
-    messageProcessor = RoverMessageProcessor(MSG_LOG, scheduler, None)
+    messageProcessor = RoverMessageProcessor(MSG_LOG, scheduler, '/dev/ttyACM0')
+    # messageProcessor = RoverMessageProcessor(MSG_LOG, scheduler, None)
     alreadyProcessedMessages = ConcurrentSet()
 
     try:
