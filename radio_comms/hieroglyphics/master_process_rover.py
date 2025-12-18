@@ -24,8 +24,8 @@ from readerWriter import ReaderWriter
 from concurrentSet import ConcurrentSet
 
 def main():
-    port = '/dev/cu.usbserial-BG00HO5R'
-    #port = '/dev/tty.usbserial-B001VC58'
+    # port = '/dev/cu.usbserial-BG00HO5R'
+    port = '/dev/tty.usbserial-B001VC58'
     #port = 'COM4'
     #port = '/dev/ttyTHS1'
     baud = 57600
