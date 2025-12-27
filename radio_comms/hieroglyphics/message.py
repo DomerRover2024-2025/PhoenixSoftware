@@ -1,8 +1,12 @@
+# Authors: Henry Jochaniewicz
+# Date last modified: October 8, 2025
+
 from functools import reduce
 import serial
 import struct
 import sys
 from datetime import datetime
+from enum import IntEnum
 
 ### MESSAGE STRUCTURE:
     # UID: 2 BYTES?
@@ -14,6 +18,20 @@ class Message:
 
     message_count = 0
 
+    class Purpose(IntEnum):
+        ACK=0
+        ERROR=1
+        MOVEMENT=2
+        HEARTBEAT=3
+        VIDEO=4
+        HIGH_DEFINITION_PHOTO=5
+        ARM_WORD=6
+        LOW_DEFINITION_PHOTO=7
+        CSV=8
+        CAMERA_VISION=9
+        FILE_CONTENTS=10
+        REQUEST_FILE=11
+
     # I am necessitating that the payload ALREADY BE a byte object.
     # I do not know how big it is.
     def __init__(self, new=True, purpose: int=0, payload : bytes=None, number : int=0):
@@ -22,6 +40,7 @@ class Message:
             Message.message_count += 1
         else:
             self.msg_id : int = -1
+
         self.purpose : int = purpose
         self.number : int = number
         self.payload : bytes = payload
@@ -47,33 +66,24 @@ class Message:
     def get_payload(self):
         return self.payload
 
-    def get_as_bytes(self):
+    def get_as_bytes(self) -> bytes:
         # if not self:
         #     return None
         b_id = struct.pack(">H", self.msg_id)
-        b_purpose = struct.pack(">B", self.purpose)
+        b_purpose = struct.pack(">B", int(self.purpose))
         b_number = struct.pack(">B", self.number)
         b_size = struct.pack(">L", self.size_of_payload)
         bytestring = b_id + b_purpose + b_number + b_size + self.payload
         return bytestring + Message.calculate_checksum(bytestring)
     
-    # def get_total_size(self):
-    #     return struct.calcsize(self.purpose)
-    
     def set_purpose(self, purpose):
-        # if type(purpose) is bytes:
-        #     self.purpose = struct.unpack(">B", purpose)[0]
-        # else:
-        self.purpose = purpose
+        self.purpose = Message.Purpose(purpose)
 
     def set_payload(self, payload):
         self.payload = payload
         self.size_of_payload = len(payload)
     
     def set_size(self, size):
-        # if type(size) is not bytes:
-        #     print("potential size isn't bytes! Whatchu trying to do here.", file=sys.stderr)
-        #     return
         self.size_of_payload = size
 
     def __bool__(self):
@@ -111,6 +121,7 @@ class Message:
             big_payload = big_payload[MAX_SIZE:]
             number += 1
 
+        # 0 acts as a sentinel value
         message_list.append(Message(purpose=purpose_for_all, payload=big_payload, number=0))
 
         # remaining = size % MAX_SIZE

@@ -5,7 +5,7 @@ import struct
 import serial
 
 ##### CONSTANTS ######
-HOST = "192.168.11.179"
+HOST = "10.12.134.205"
 PORT = 12347
 
 # create subscribe socket
