@@ -12,7 +12,6 @@ import struct
 import numpy as np
 import concurrent.futures
 import time
-import traceback
 
 from message import Message
 from scheduler import Scheduler
@@ -93,8 +92,10 @@ def process_messages(messageQueue : MessageQueue, scheduler : Scheduler) -> None
     ]
 
     # TODO: Change these lines out when trying to write to the motors.
-    messageProcessor = RoverMessageProcessor(MSG_LOG, scheduler, '/dev/ttyACM0')
-    # messageProcessor = RoverMessageProcessor(MSG_LOG, scheduler, None)
+    arduinoPath = '/dev/ttyACMO'
+    # arduinoPath = None
+
+    messageProcessor = RoverMessageProcessor(MSG_LOG, scheduler, arduinoPath)
     alreadyProcessedMessages = ConcurrentSet()
 
     try:

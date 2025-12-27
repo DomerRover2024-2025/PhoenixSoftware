@@ -1,8 +1,3 @@
-#### This is going to be more of a user-interface
-#### based program than the rover version, which
-#### doesn't *have* a UI, so it will be completely covered
-#### by the scheduler and message manager.
-
 # This is the client side of a client-server model.
 # This will be sending requests to the rover.
 
@@ -36,7 +31,7 @@ from concurrentSet import ConcurrentSet
 
 def main():
     port = "/dev/cu.usbserial-BG00HO5R"
-    #port = "/dev/cu.usbserial-B001VC58"
+    # port = "/dev/cu.usbserial-B001VC58"
     # port = "COM4"
     #port = "/dev/ttyUSB0"
     baud = 57600
@@ -88,7 +83,6 @@ def readMessages(readerWriter : ReaderWriter, messageQueue : MessageQueue) -> No
             print('message added', len(messageQueue))
     print('exited reading')
 
-##### THE BRAINS FOR DECODING IMPORTED MESSAGES FROM ROVER
 def processMessages(messageQueue : MessageQueue, scheduler : Scheduler, ERR_LOG : str) -> None:
     messageProcessor = BaseStationMessageProcessor(ERR_LOG, scheduler)
     alreadyProcessedMessages = ConcurrentSet()
