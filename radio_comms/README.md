@@ -266,6 +266,8 @@ There may be an easier way to do this, but I do not know how.
 
 These are two essentially WiFi bridges. See the [IP address](#ip-addresses) information above.
 
+These look like two white cylinders about half a foot long with an ethernet port at the base.
+
 In order to use, you will need a router and two ethernet cables per bullet. Take
 an ethernet cable from the bullet into the LAN of the router, and another from the PoE
 to your computer. Do the same on the other side.
@@ -319,11 +321,13 @@ should be **8**. You may need to adjust this if you get different antennas.
 For more information, take a look at this [Google Doc](https://docs.google.com/document/d/1zqrMQSnEG07DRZDH8TrgdfqI6baC9tWreErHnTZrSlo/edit?tab=t.0), 
 which is probably somewhat wrong, but is also a good place to start troubleshooting from.
 
-## Quick Testing
+## Scrappy Files to Transfer Information
 
 If you ever need to quickly send over specific information to the rover
-over wifi or the bullets, you can find files for this in
-`info_over_bullet_files`.
+over wifi or the bullets (not the RFD900X transceivers), you can find files for this in
+`info_over_bullet_files`. I am not going to expand on this as much because this is
+only meant for last-ditch testing efforts, like for quickly getting the rover
+moving.
 
 ## Software Usage
 
