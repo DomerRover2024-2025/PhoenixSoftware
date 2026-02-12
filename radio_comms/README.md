@@ -362,14 +362,17 @@ There are several lines at the top of these files that
 look like:
 
 ```python
-path = 'some string'
+port = 'some string'
 ```
 
+I will refer to this variable in the next few paragraphs as "path" since
+it describes a path to the file used as the port.
+
 If this is `roverComms.py`, and you are running this via
-the pin connections on the Jetson, path must be `/dev/ttyTHS1`.
+the pin connections on the Jetson, the path must be `/dev/ttyTHS1`.
 
 In either case, if this is a Linux system and connecting via a USB,
-path must be `/dev/ttyUSB0`.
+the path must be `/dev/ttyUSB0`.
 
 If you are unsure what the path to the port is to the transceivers
 (when connecting via usb), run the following in a terminal,
